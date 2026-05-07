@@ -88,6 +88,12 @@
 - [扩展][必须] 文件的命名应与类名有关（如类名为 customerAccount，文件名应为 customerAccount.cpp 和 CustomerAccount.h）。 | anchor=CC2.CH31.S08
 - [扩展][必须] 在文件中用至少两个空行将各子程序分开。 | anchor=CC2.CH31.S08
 - [语言特定][必须] 仔细组织源文件中内容的次序。C++ 源文件的典型顺序为：1）文件描述性注释 2）#include 行 3）多类使用的常量定义 4）多类使用的枚举 5）宏函数定义 6）多类使用的类型定义 7）导入的全局变量和函数 8）导出的全局变量和函数 9）本文件私用的变量和函数 10）各个类。 | anchor=CC2.CH31.S08
+
+- [语言特定][必须] Python：遵循 PEP 8。缩进 4 空格；函数/类间 2 空行、方法间 1 空行；每行最多 79 字符（文档字符串/注释 72）；导入顺序：标准库 → 第三方库 → 本地导入，每组间空行；文件编码 UTF-8。文件内顺序：shebang → 编码声明 → 模块文档字符串 → imports → 模块级常量和变量 → 类 → 函数。 | author=DingYiXing
+- [语言特定][必须] Go：使用 `gofmt` 或 `goimports` 自动格式化，不手动调整。缩进使用 tab（不是空格）；文件内顺序：package 声明 → imports（分组：标准库、第三方、内部）→ 常量 → 变量 → 类型 → 导出的函数/方法 → 私有函数/方法。每个文件只属于一个 package。 | author=DingYiXing
+- [语言特定][必须] Rust：使用 `rustfmt` 自动格式化。缩进 4 空格；文件内顺序：crate-level 属性 → `use` 声明（标准库、外部 crate、crate 内部、super、self，每组空行分隔）→ 模块声明 → 常量和静态变量 → 类型定义 → trait 实现 → 函数。 | author=DingYiXing
+- [语言特定][必须] TypeScript：使用 Prettier 或 ESLint 自动格式化。缩进 2 空格；每行最多 80-100 字符；文件内顺序：imports（不分组时按字母序，或用工具自动排序）→ type/interface 声明 → 常量 → 函数 → 类；export 语句集中在文件末尾（桶导出模式可选）。 | author=DingYiXing
+
 - [扩展][必须] 布局方案应准确表现、始终如一表现代码的逻辑结构。（见 31.1 节格式化基本原理及良好布局的三个目标）| anchor=CC2.CH31.S01
 - [扩展][必须] 布局方案应改善可读性且经得起修改。（见 31.1 节良好布局的目标）| anchor=CC2.CH31.S01
 - [扩展][禁止] 不要在 if/while/for 等控制结构后忘记添加 begin-end 对。 | anchor=CC2.CH31.S04

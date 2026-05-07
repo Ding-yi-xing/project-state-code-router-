@@ -1,311 +1,527 @@
 ---
 name: project-state-code-router
 description: >
-  This skill should be used whenever the user asks to write, modify, refactor,
-  review, debug, or continue software work in an existing or new project.
-  Provides a project-state router plus actionable coding constraints distilled
-  from Code Complete 2. Trigger on: continuing work in a delivery surface or
-  service domain, project-management coordination, initializing project docs,
-  patching missing collaboration docs, writing functions, designing classes,
-  naming variables, handling errors, writing comments/documentation, testing,
-  debugging, refactoring, optimizing performance, setting up projects, and code
-  review. Use when the user says "write code", "implement", "refactor", "fix
-  bug", "continue web", "continue ios", "continue api", "set up project docs",
-  "initialize project", "create project structure", "write test", "review
-  code", or any code-related request that would benefit from minimal, current,
-  responsibility-specific context.
+  This skill should be used when the user asks to write, modify, refactor, review,
+  debug, or continue code and project work. It fuses two layers: a project-state /
+  collaboration router plus actionable coding constraints distilled from Code
+  Complete 2. Trigger on: initializing or patching project collaboration docs,
+  routing work through project-defined units, avoiding dirty reads in multi-person
+  documentation workflows, writing functions, designing classes, naming variables,
+  handling errors, writing comments/documentation, testing, debugging, refactoring,
+  optimizing performance, setting up projects, and code review. Use when the user
+  mentions docs setup, project collaboration, current status, requirements,
+  blockers, archive, implementation, refactor, fix bug, add function, create class,
+  write test, add comment, review code, or any code-related request that benefits
+  from minimal current context plus coding-governance guidance.
+compatibility:
+  tools:
+    - Read
+    - Write
+    - Edit
+    - Glob
+    - Grep
 ---
 
-# Code Constraints
+# Project State Router and Code Constraints
 
-anthor=DingYiXing
+这是一个把**项目状态路由**与**代码规范约束**融合在一起的 skill。
 
-This skill is a project-state router and coding-governance workflow.
+它有两个互相配合的层：
+- **项目状态层**：负责判断当前任务属于哪个工作单元、应该读取哪些最小当前事实、是否需要初始化或补齐协作文档结构，以及如何避免多人协作下的脏读与误改。
+- **代码约束层**：在项目状态和上下文范围清晰后，继续为实现、重构、调试、测试、命名、错误处理、性能优化、代码评审等任务提供可执行的约束与路由入口。
 
-Use it to:
-- determine the current responsibility area (`delivery-surface`, `service-domain`, `pm`, or `cross-area`)
-- initialize or patch the minimum project-collaboration document structure
-- load only the smallest active fact set needed for the current task
-- prevent dirty reads from outdated plans, process logs, or historical designs
-- retrieve archived context only when the current task explicitly requires historical traceability
-- apply actionable coding constraints distilled from Code Complete 2 once the active project state is clear
-- follow a root-level `CLAUDE.md` first when it exists, using it as the collaboration entry contract for routing and responsibility lookup
+使用顺序始终是：
+1. 先用项目状态层缩小当前可信上下文
+2. 再进入代码约束层执行具体编码规范
 
-The skill has two layers:
-1. **Project-state layer** — decides what is current, what to read, what to create, and what must stay untouched.
-2. **Coding-constraints layer** — applies implementation rules from `references/` after the task has been scoped correctly.
+它的目标不是生成一大套漂亮文档，也不是脱离项目状态孤立地谈代码规范，而是让 Claude 在多人协作、文档可能局部过时、且不同项目责任边界不同的情况下，仍然能：
+- 找到当前最小且可信的事实集
+- 只改当前应该改的那部分文档或代码上下文
+- 避免把旧设计、旧计划、旧归档当成当前执行依据
+- 在缺结构时只补最小骨架，不重建整棵 docs 树
+- 在项目状态清晰后，把代码工作继续路由到合适的约束与规范入口
 
-## Core principles
+## 项目状态层适用对象
 
-1. **Active facts first.** Default to the smallest current fact set, not the largest available documentation set.
-2. **CLAUDE.md before routing.** If a root-level `CLAUDE.md` exists, read it first and use it to determine routing rules, responsibility lookup, and when to ask the user.
-3. **Archive is opt-in.** Historical materials are only for explicit backtracking, redesign, migration, or root-cause tracing.
-4. **Never overwrite existing user content.** If a file already exists and is non-empty, preserve it.
-5. **Locked means no proactive redesign.** If a page, module, interface, or requirement is marked completed/locked, do not restyle, restructure, or re-architect it unless the user explicitly asks.
-6. **One current truth, many historical references.** Current truth belongs in a tiny active layer; detailed history belongs in archive.
-7. **Patch missing structure, do not rebuild the whole project.** Create only what is missing.
-8. **Code does not outrank current facts by default, and old docs never outrank current facts.** Resolve conflicts deliberately.
+把项目文档按“工作单元”组织，而不是预设成固定的 frontend / backend / mobile。
+工作单元由项目经理或团队按项目实际情况创建，例如：
+- `order-service`
+- `admin-web`
+- `miniapp`
+- `billing`
+- `auth`
+- `ops-panel`
 
-## Document layers
+Claude 只负责：
+- 识别当前任务属于哪个工作单元
+- 读取该单元及最少量共享事实
+- 在需要时补齐单元骨架
+- 按安全规则更新文档
 
-Treat project documents as belonging to one of three layers.
+不要预设项目一定有哪几个单元。
 
-### 1. Active
-Current truth. These are the only documents that should enter context by default.
+## 核心概念
 
-Typical examples:
-- current phase goals and scope
-- current priorities
-- current acceptance criteria
-- current implementation boundaries
-- current locked/no-redesign zones
-- responsibility-area entry files for delivery surfaces, service domains, and pm
+### 1. 工作单元
+工作单元是最小责任边界。
+每个工作单元拥有自己的：
+- 当前状态
+- 需求清单
+- 阻塞清单
+- 问题清单
+- 对外协同需求
+- 归档
 
-### 2. Reference
-Long-lived design material. Load only when the current task truly needs it.
+默认认为：
+- A 改自己的单元文档，不应影响 B 的单元
+- B 改自己的单元文档，不应反向要求 A 的文档同步变更
+- 跨单元协作通过共享层或 `sync/` 完成，不直接改别人的内部文档
 
-Typical examples:
-- API design
-- architecture design
-- data design
-- visual design
-- module design
+### 2. 共享区
+共享区只放跨单元的当前事实，不放某个单元自己的过程性细节。
 
-### 3. Archive
-Historical material. Default to not reading it.
+典型共享事实：
+- 当前阶段目标与范围
+- 当前任务优先级
+- 当前验收标准
+- 当前实现边界
+- 当前锁定范围
+- 当前跨单元阻塞
 
-Typical examples:
-- completed requirement details
-- closed phase progress notes
-- old plans
-- deprecated constraints
-- historical handoff notes
+### 3. 当前 / 参考 / 归档
+把文档分成三层：
 
-If active facts conflict with reference or archive materials, **active facts win**.
-Archive content must never be used as the default basis for current implementation.
+#### 当前（current）
+当前执行事实。
+默认只读这一层。
 
-## Responsibility routing
+#### 参考（reference）
+长期设计资料，例如接口设计、架构设计、数据设计。
+只在当前任务真的需要时读取。
 
-Choose the narrowest responsibility area that matches the current task.
+#### 归档（archive）
+历史记录、已完成事项、旧计划、旧过程。
+默认不读。
+只有在回溯、迁移、重新激活历史事项、解释当前约束来源时才读。
 
-### delivery-surface
-Use for user-facing delivery work such as web, ios, android, miniapp, admin, or other client surfaces. Typical tasks include page implementation, interactions, client state, API integration, surface-specific acceptance, and UI fixes.
-Default active reading is: the current delivery-surface entry file, the delivery-surface execution view when actively推进任务, current boundaries, current acceptance, current locked zones, blocker list only when the task is actually blocked, and task-specific API contracts only if required.
+当前层永远优先于参考层和归档层。
 
-### service-domain
-Use for service-side or shared service work such as api, jobs, data, auth, or other service domains. Typical tasks include domain logic, APIs, data access, permissions, security, jobs, service testing, and service-side fixes.
-Default active reading is: the current service-domain entry file, the service-domain execution view when actively推进任务, current boundaries, current acceptance, current locked zones, blocker list only when the task is actually blocked, and task-specific interface or data contracts only if required.
+### 4. 可见 / 半可见 / 不可见冲突
+多人协作下，不要把“没有 git 冲突”理解成“没有协作风险”。
 
-### pm
-Use for project goals, scope, priorities, acceptance criteria, risk tracking, task splitting, lock decisions, and current delivery state.
+- **可见冲突**：远端已发生变化，当前操作者可以看到
+- **半可见冲突**：当前操作者本地工作区已有未提交修改
+- **不可见冲突**：其他协作者本地有未推送修改，当前操作者看不到
 
-### cross-area
-Use only when the task truly spans boundaries: integration, migration, boundary disputes, shared acceptance, or project-wide coordination.
+因此默认编辑策略必须保守：
+- 不整篇重写
+- 不大范围重排
+- 不把多个事项混改到一起
+- 优先做区块级、字段级、追加式更新
 
-Do not load cross-area material unless the task genuinely crosses responsibility boundaries.
+## 绝对安全规则
 
-## Project state machine
+### 永远不要覆盖已有非空文件
+如果文件存在且非空：
+- 不重写
+- 不替换
+- 不用模板覆盖
+- 不因为模板升级而强制迁移
 
-Every invocation must begin by deciding whether the project is in `normal`, `bootstrap`, or `patch` mode.
+只允许：
+- 创建缺失文件
+- 在明确需要时补一个 companion file
+- 在明确用户要求后，对已有内容做最小修改
 
-### normal
-Use when the project already has an active collaboration structure.
+### 永远不要在初始化时捏造业务事实
+初始化和补齐结构时：
+- 可以创建标题
+- 可以创建固定章节
+- 可以创建空清单
+- 可以创建模板字段
 
-Behavior:
-- do not create new structure
-- if a root-level `CLAUDE.md` exists, read it first as the routing and responsibility entry contract
-- use `docs/.project-docs-manifest.yaml` as the sentinel for default active files and responsibility-area entry files
-- read only the minimum active set for the chosen responsibility area
-- read reference files only when the task needs them
-- read archive only through the archive retrieval protocol
+不可以：
+- 猜需求
+- 猜负责人
+- 猜优先级
+- 猜完成状态
+- 猜验收标准
+
+### 永远不要把归档当当前执行面
+归档默认只读。
+不要：
+- 直接在归档里继续编辑未完成工作
+- 把归档里的旧结论自动当成今天仍然成立
+- 因为归档里写过某种方案就回滚当前实现
+
+### 永远不要默认跨单元写入
+默认写入范围只限当前单元。
+涉及跨单元信息时：
+- 优先写共享层
+- 或写当前单元的 `sync/outward-needs.md`
+- 不直接改其他单元的内部状态、需求、阻塞、问题文档
+
+## 运行模式
+
+每次使用这个 skill，都先判断项目处于以下哪一种模式。
 
 ### bootstrap
-Use when the project is effectively uninitialized.
+项目基本还没有协作文档结构。
 
-Behavior:
-- create the minimum docs structure
-- create a root-level `CLAUDE.md` that tells Claude where to look for responsibility and active docs
-- create the minimum active-layer files
-- create a manifest file that records the structure version and responsibility lookup
-- create an initialization record
-- do not create extra long-form design docs unless the user asks
+进入条件：
+- 根目录没有 `docs/`
+- 没有 `.project-docs-manifest.yaml`
+- 没有可识别的活动层文档
+- 用户明确要求初始化项目文档
+
+行为：
+- 创建最小骨架
+- 创建共享层核心文件
+- 创建 `docs/units/.template/`
+- 不预创建具体业务单元
+- 不预创建具体需求/问题/阻塞条目
 
 ### patch
-Use when the project has some docs, but is missing required active-layer or responsibility-area entry files.
+项目有部分文档，但缺少必要骨架或入口文件。
 
-Behavior:
-- create only missing directories/files
-- never overwrite existing non-empty files
-- prefer adding a companion file or migration note over rewriting user-authored docs
-- patch the active layer first before adding deeper design structure
+进入条件：
+- `docs/` 已存在，但 manifest 缺失
+- 共享层不完整
+- 某个工作单元缺少必要文件
+- 项目只有历史长文档，没有紧凑活动层
 
-## Initialization detection
+行为：
+- 只补缺失目录和文件
+- 不覆盖已有非空文件
+- 优先补活动层，再补更深层结构
 
-Use these heuristics to decide which mode applies.
+### normal
+项目已经具备完整活动层和路由结构。
 
-### Enter bootstrap mode when:
-- the `docs/` directory does not exist at the project root directory, or
-- the project has no manifest and no recognizable active-core files, or
-- the user explicitly says this is a new project, project setup, initialization, or first-time documentation task
+进入条件：
+- `docs/.project-docs-manifest.yaml` 存在
+- 活动层文件存在
+- 当前任务对应的工作单元入口存在
 
-### Enter patch mode when:
-- the `docs/` directory exists at the project root directory but the manifest is missing, or
-- active-core files are incomplete, or
-- the current responsibility-area entry file is missing, or
-- the project only has old long-form docs and lacks a compact active layer
+行为：
+- 不新建结构
+- 只读最小必要文档
+- 只在当前单元范围内做最小更新
 
-### Enter normal mode when:
-- the manifest exists, and
-- the active-core files exist, and
-- the current responsibility-area entry file exists
+## 目标目录结构
 
-## Minimum structure to create
-
-When bootstrapping, create only the minimum collaboration structure.
-These docs are project-level shared facts and should live at the project root directory, alongside the project's top-level code or app directories, not inside one side's source tree.
-Here, “project root directory” means the root of the current project scope the skill is operating on, not a literal folder named `project-root`.
+默认目录结构如下：
 
 ```text
-<project-root-directory>/
-├── CLAUDE.md
-├── docs/
-│   ├── .project-docs-manifest.yaml
-│   ├── 00-导航/
-│   │   └── 项目经理导航文档.md
-│   ├── 10-共享状态/
-│   │   ├── 当前阶段目标与范围.md
-│   │   ├── 当前任务优先级清单.md
-│   │   ├── 当前阻塞与待修复问题清单.md
-│   │   ├── 当前验收标准清单.md
-│   │   ├── 当前实现边界对照.md
-│   │   └── 当前锁定范围与禁止主动重构清单.md
-│   ├── 20-交付面/
-│   ├── 30-服务域/
-│   ├── 40-项目治理/
-│   │   ├── 项目协作与开发原则.md
-│   │   └── AI防脏读与防回滚规则.md
-│   ├── 90-过程记录/
-│   │   └── 000-项目初始化.md
-│   └── 99-归档/
-├── <top-level-code-dir-a>/
-└── <top-level-code-dir-b>/
+<project-root>/
+├─ CLAUDE.md
+├─ docs/
+│  ├─ .project-docs-manifest.yaml
+│  ├─ navigation/
+│  │  └─ 项目导航.md
+│  ├─ shared/
+│  │  ├─ README.md
+│  │  ├─ current/
+│  │  │  ├─ 当前阶段目标与范围.md
+│  │  │  ├─ 当前任务优先级清单.md
+│  │  │  ├─ 当前验收标准清单.md
+│  │  │  ├─ 当前实现边界对照.md
+│  │  │  └─ 当前锁定范围与禁止主动重构清单.md
+│  │  ├─ contracts/
+│  │  ├─ decisions/
+│  │  ├─ milestones/
+│  │  └─ archive/
+│  ├─ units/
+│  │  ├─ .template/
+│  │  └─ <unit-name>/
+│  └─ process/
+│     └─ 000-项目初始化.md
 ```
 
-Read `references/bootstrap-templates.md` when you need the minimal content expectations for these files.
+其中：
+- `navigation/` 是人和 Claude 的导航入口
+- `shared/current/` 是默认可读的共享当前事实
+- `units/` 是项目自定义工作单元目录
+- `process/` 只记录过程，不是默认读取入口
 
-## Idempotency and safety rules
+## 工作单元最小结构
 
-- Create a directory only if it does not exist.
-- Create a file only if it does not exist.
-- If a file exists and is non-empty, do not overwrite it.
-- If a template evolves, do not rewrite old files automatically; create a migration note or missing companion file instead.
-- Never rebuild the entire docs tree when only one or two active files are missing.
-- Never auto-delete archive content.
-- When in doubt, preserve user-authored content and create a missing companion file instead of editing aggressively.
+每个具体工作单元至少应具备：
 
-## Minimal reading protocol
+```text
+docs/units/<unit-name>/
+├─ README.md
+├─ manifest.md
+├─ status.md
+├─ requirements/
+│  └─ index.md
+├─ blockers/
+│  └─ index.md
+├─ issues/
+│  └─ index.md
+├─ sync/
+│  └─ outward-needs.md
+└─ archive/
+   └─ index.md
+```
 
-The whole point is to minimize token use and avoid stale context.
+### 文件职责
 
-### For delivery-surface work, default to:
-1. the current delivery-surface entry file
-2. the current delivery-surface task execution view when the task is in active progress
-3. current implementation boundaries
-4. current acceptance criteria
-5. current locked/no-redesign zones
-6. shared blocker list only when there is an active API/bug/integration blocker
-7. task-specific API contract only if required
+#### `README.md`
+给人看的单元简介。
+说明这个单元大致负责什么。
 
-### For service-domain work, default to:
-1. the current service-domain entry file
-2. the current service-domain task execution view when the task is in active progress
-3. current implementation boundaries
-4. current acceptance criteria
-5. current locked/no-redesign zones
-6. shared blocker list only when there is an active API/bug/integration blocker
-7. task-specific interface or data contract only if required
+#### `manifest.md`
+给 Claude 的单元路由文件。
+至少包含：
+- 单元名称
+- 负责范围
+- 不负责范围
+- 路由线索
+- 默认读取顺序
 
-### For PM work, default to:
-1. current phase goals and scope
-2. current priorities
-3. current acceptance criteria
-4. current locked zones
-5. shared blocker list only when tracking progress, risk, or acceptance blockers
+#### `status.md`
+当前状态总览。
+应只保留当前最重要事实，例如：
+- 当前目标
+- 当前待完成
+- 当前阻塞
+- 当前待修复 / 待处理问题
+- 最近完成
+- 下一步
 
-### For cross-area work, default to:
-1. current implementation boundaries
-2. current acceptance criteria
-3. current locked zones
-4. only the responsibility-area entry files directly involved
-5. shared blocker list only when the task is truly blocked across areas
-6. reference docs only if the active layer is insufficient
+#### `requirements/index.md`
+当前需求摘要清单。
 
-Do **not** default to long process logs, archived plans, old redesign notes, or project-wide omnibus documents.
+#### `blockers/index.md`
+当前阻塞摘要清单。
 
-## Archive retrieval protocol
+#### `issues/index.md`
+当前问题摘要清单。
 
-Archived requirements, old plans, and historical process notes are not current execution guides.
+#### `sync/outward-needs.md`
+当前单元对外提出的协同请求、依赖或同步事项。
+这是默认跨单元写入出口。
 
-Only retrieve archive material when one of the following is true:
-- the user explicitly asks to review old design, old progress, or a previous phase
-- the current task is revisiting, migrating, or repairing a previously completed area
-- an active-layer doc explicitly points to an archived source
-- you need to explain why a current constraint exists or why an old one was dropped
-- there is a real conflict that requires historical traceability
+#### `archive/index.md`
+当前单元归档索引。
+只记录归档事项，不作为默认执行入口。
 
-When archive access is necessary:
-1. read the smallest possible archive index/summary first
-2. retrieve only the 1-2 most relevant archived files
-3. do not scan the whole archive tree by default
+## 状态与清单规则
 
-Do not use archived requirements, historical plans, or old process notes as the default basis for current implementation.
+可以使用 Markdown checklist 跟踪状态：
+- `[ ]` 未完成
+- `[x]` 已完成
 
-## Locked-state protection
+但 checklist 只能作为**摘要层**，不能作为唯一事实来源。
 
-If a page, module, interface, or requirement is marked completed, locked, or no-redesign:
-- do not proactively restyle it
-- do not proactively re-architect it
-- do not proactively rename or normalize it just because an older doc suggests another direction
-- do not treat old design ideals as permission to rewrite working code
+正确做法：
+- `status.md` 和各类 `index.md` 只放摘要
+- 复杂事项应落到独立条目文件
+- 索引里只保留标题、编号、状态、简短说明
 
-If the current implementation is locked and the task is not explicitly a redesign or migration task, preserve the implementation and update facts instead of reworking the code.
+不要把所有上下文都塞进一个长清单里。
 
-## Conflict resolution
+## 独立条目规则
 
-When sources disagree, use this priority order:
+对于复杂需求、问题、阻塞，使用“索引 + 条目文件”模式。
 
-1. active canonical facts
-2. current responsibility-area entry file
-3. task-specific referenced docs
-4. reference design docs
-5. process records
-6. archived docs
+建议保留模板文件：
+- `requirements/_item.template.md`
+- `blockers/_item.template.md`
+- `issues/_item.template.md`
+- `issues/_reopened.template.md`
+- `archive/_archived-item.template.md`
 
-Apply these rules:
-- active vs archive → active wins
-- active vs reference → active wins
-- code vs old archive → do not revert code because of archive
-- code vs active facts → determine which one is stale before changing anything
-- if docs are stale, prefer updating the active fact source over dragging code backward
+条目文件可以包含：
+- id
+- title
+- status
+- owner
+- created_at / updated_at
+- summary
+- details
+- acceptance / impact / next action
+- links
 
-## Modern default behavior overrides
+skill 在初始化时可以创建模板，但不要自动创建业务条目。
 
-Before applying the coding rules in `references/`, normalize them to modern repository defaults.
-This layer exists to prevent historically useful but overly heavy rules from turning into default agent behavior.
+## 归档与重新激活规则
 
-1. **Core safety and correctness still win.** Any `[核心]` or security-relevant rule about correctness, data loss, privilege boundaries, injection, undefined behavior, or real runtime hazards remains in force.
-2. **Project instructions outrank generic ceremony.** A root-level `CLAUDE.md`, active-layer project docs, and established repository conventions take priority over generic `[扩展]` or `[历史]` guidance.
-3. **Prefer the minimum sufficient change.** Do not add abstractions, helper layers, validation paths, comments, headers, or scaffolding unless they improve the current code materially.
-4. **Do not add ceremony by default.** Skip heavyweight practices unless the project already uses them or the task explicitly asks for them: file header metadata, author/contact blocks, version-control tags in source files, UDF/SDF-style design traces, mandatory pseudocode-as-comments workflows, or comments on every control structure.
-5. **Validate at boundaries, not everywhere.** Validate external, cross-process, persistence, network, filesystem, user-input, and other untrusted boundary data. Do not duplicate defensive validation on already-trusted internal flows unless the current architecture explicitly requires it.
-6. **Prefer native language and ecosystem mechanisms.** When a language or framework already provides the modern, idiomatic solution, prefer it over older manual patterns. Examples: type systems over comment-only contracts, linters/static analysis over manual checklists, structured exceptions/results over ad hoc status plumbing, and standard library/container abstractions over custom low-level workarounds.
-7. **Comments are exceptional, not automatic.** Prefer self-explanatory code. Add comments only for non-obvious intent, invariants, workarounds, surprising behavior, or important constraints that the code alone cannot express.
-8. **Abstraction must pay for itself now.** Extract functions, layers, and reusable helpers only when they reduce present complexity, duplication, or boundary confusion. Do not fragment obvious local logic just to satisfy a generic rule about small routines.
-9. **When a generic rule conflicts with modern clarity, choose clarity.** If an `[扩展]` or `[历史]` rule would make the result noisier, more ceremonial, or less idiomatic without improving safety or correctness, prefer the simpler modern implementation and briefly document the choice when needed.
+### 归档
+完全完成的需求或问题，可以从活动层移入归档。
 
-## Coding constraints layer
+归档应该是独立管理的，只保留：
+- 已完成快照
+- 归档原因
+- 关键结论
+- 必要引用
 
-Once the project state is clear, route to the Code Complete rule files below.
+### 重新激活
+如果之后又要继续处理一个已归档事项：
+- 不直接修改原归档文件
+- 新建一个活动条目
+- 在新条目里引用原归档来源
+- 把状态标记为 `reopened`
+
+也就是说：
+- 归档是快照
+- 重新激活是新生命周期
+
+不要把“归档恢复”实现成“回去继续改原归档文件”。
+
+## 初始化与补齐规则
+
+### bootstrap 时创建什么
+只创建最小骨架：
+- `CLAUDE.md`（如果用户希望该项目有根级协作入口）
+- `docs/.project-docs-manifest.yaml`
+- `docs/navigation/项目导航.md`
+- `docs/shared/README.md`
+- `docs/shared/current/` 下核心当前事实文件
+- `docs/units/.template/` 及其模板骨架
+- `docs/process/000-项目初始化.md`
+
+不要在 bootstrap 时：
+- 创建具体业务单元
+- 创建具体需求条目
+- 创建具体问题条目
+- 猜测项目结构细节
+
+### patch 时怎么补
+如果发现某个工作单元已经存在，例如 `docs/units/admin-web/`：
+- 只补它缺失的最小文件
+- 不覆盖已有人写过内容的文件
+- 不因为模板更新就重写该单元已有文档
+
+## 默认读取顺序
+
+每次执行时，按以下顺序做最小读取。
+
+### 第 1 步：先读根入口
+如果存在根级 `CLAUDE.md`，先读它。
+
+### 第 2 步：读项目 manifest
+读 `docs/.project-docs-manifest.yaml`，确认：
+- docs 根目录
+- 导航入口
+- shared/current 入口
+- unit 根目录
+- 单元发现方式
+- 编辑边界规则
+
+### 第 3 步：定位当前工作单元
+优先依据：
+- 用户明确提到的单元名
+- 任务涉及的功能/模块/页面/服务
+- 单元 `manifest.md` 的路由线索
+
+### 第 4 步：只读当前单元最小集
+默认只读：
+1. `manifest.md`
+2. `status.md`
+3. 只有在需要时才读 `requirements/index.md`
+4. 只有在需要时才读 `blockers/index.md`
+5. 只有在需要时才读 `issues/index.md`
+6. 只有跨单元协作时才读 `sync/outward-needs.md`
+
+### 第 5 步：只在必要时读共享层
+只有以下情况才读 `shared/current/`：
+- 涉及跨单元边界
+- 涉及共享验收标准
+- 涉及共享实现边界
+- 涉及共享优先级
+- 涉及共享阻塞
+
+### 第 6 步：归档是显式按需读取
+只有以下情况才读 archive：
+- 用户明确要求看历史
+- 当前任务是回溯、迁移、复盘、恢复历史事项
+- 活动层明确引用了归档来源
+
+不要默认扫完整个 docs 树。
+不要默认读 process。
+不要默认读 archive。
+
+## 默认编辑策略
+
+### 当前单元优先
+默认只编辑当前工作单元内的文档。
+
+### 共享层谨慎编辑
+只有在任务明确涉及共享事实时，才更新 `shared/current/`。
+
+### 跨单元默认只读
+需要别的单元配合时：
+- 优先写入当前单元的 `sync/outward-needs.md`
+- 或更新共享层里的跨单元阻塞 / 协同信息
+- 不直接改对方单元的内部管理文档
+
+### 最小修改原则
+在已有文件里，优先：
+- 区块级修改
+- 字段级修改
+- 追加式记录
+
+避免：
+- 全文改写
+- 全文重排
+- 顺手统一格式导致大 diff
+- 把多个事项揉成一次大更新
+
+## manifest 期望表达的内容
+
+`docs/.project-docs-manifest.yaml` 至少应能回答这些问题：
+- docs 根在哪里
+- 导航文件在哪里
+- shared/current 的默认入口有哪些
+- units 根在哪里
+- 如何发现单位目录
+- 一个单元最少要有什么文件
+- 默认读取顺序是什么
+- 默认编辑边界是什么
+- archive 是否只读
+- 是否要求“重新激活而不是直接改归档”
+
+skill 在需要创建或修补 manifest 时，应优先写这些结构性事实，不要写业务猜测。
+
+## 输出要求
+
+当 skill 被要求初始化或补齐结构时，输出应包含：
+1. 当前判断的模式：`bootstrap` / `patch` / `normal`
+2. 当前识别到的工作单元范围
+3. 实际创建或补齐了哪些文件
+4. 哪些文件因已存在且非空而被保留未覆盖
+5. 哪些业务事实需要用户后续补充
+
+当 skill 被要求更新现有文档时，输出应包含：
+1. 读取了哪些最小入口文件
+2. 为什么本次只改这些文件
+3. 是否涉及共享层或跨单元信息
+4. 是否明确避开了归档或其他单元内部文档
+
+## 不要做的事
+
+- 不要预设固定的 frontend / backend / mobile 目录
+- 不要默认创建所有可能的工作单元
+- 不要在初始化时生成大量长文档
+- 不要把 process 日志当成当前事实主入口
+- 不要把归档直接拿来继续编辑
+- 不要因为看到旧设计就回滚当前实现
+- 不要为了“整洁”而重写已有非空文档
+- 不要在不确定责任边界时扫描整个 docs 树
+- 不要把 checklist 当成唯一事实来源
+- 不要直接修改其他工作单元的内部管理文档
+
+
+## 代码约束层
+
+Coding rules distilled from Code Complete 2. Load reference files from `references/` as needed.
+
+这一层保留原 `code-constraints` 的主体行为：
+- 代码任务本身应稳定触发本 skill
+- 先按项目状态层收缩上下文，再按下面的规则路由到具体参考文件
+- 如果任务只是纯代码任务而没有额外协作文档需求，仍然直接进入这层执行
 
 ## Priority
 
@@ -350,16 +566,16 @@ Rules that fail criterion 3 belong in `[扩展]`. Rules tied to a specific langu
 
 For quick tasks, filter to `[核心]` only. For thorough work, include `[扩展]`. Skip `[语言特定]` and `[历史]` unless the language/context matches.
 
-## Reading protocol for coding rules
+## Reading Protocol
 
 1. **First, scan `[核心]` rules** in the target file(s) — these cover ~10-30% of rules, are the minimal safe working surface, and always apply.
 2. **Then, read `[扩展]` rules** only when:
-   - the task is complex (multi-file, multi-class, or architectural)
-   - you're writing public API surfaces
-   - the code handles money, security, or safety-critical operations
+   - The task is complex (multi-file, multi-class, or architectural)
+   - You're writing public API surfaces
+   - The code handles money, security, or safety-critical operations
 3. **Skip `[语言特定]` rules** unless the language matches the current file.
-4. **Skip `[历史]` rules** unless the project explicitly uses those patterns.
-5. **Templates** in `references/templates.md` — load only when creating new files or new public functions. Skip for small edits and bug fixes.
+4. **Skip `[历史]` rules** — they describe obsolete patterns (goto, global data patterns from pre-OOP era). Only apply if the project explicitly uses those patterns.
+5. **Templates** in `references/templates.md` — only load when creating new files or new public functions. Skip for small edits and bug fixes.
 
 Each reference file's header tells you what `[核心]` and `[扩展]` cover in that domain.
 
@@ -384,44 +600,11 @@ Each reference file's header tells you what `[核心]` and `[扩展]` cover in t
 | refactoring existing code | references/refactoring.md, references/design.md |
 | optimizing performance / tuning code | references/performance.md |
 | new project / module setup / planning | references/process.md, references/project-state.md |
+| code review / quality check / inspection | references/process.md |
 | code review / PR review / merge readiness check | references/process.md, references/git-workflow.md, references/project-state.md |
 
 `references/warning-signs.md` applies to all coding activities — load it when uncertain.
 
-## Git workflow quick entry
-
-For commit / PR / MR / merge-readiness tasks, `references/git-workflow.md` is the execution file.
-
-### Author-side entry
-
-Use this path when deciding whether a change is ready to submit:
-- `Submission timing`
-- `Do not submit yet when`
-- `Commit message templates`
-- `Pre-commit checklist template`
-- `PR / MR description templates`
-
-### Reviewer-side entry
-
-Use this path when deciding whether a submitted change is ready to approve or merge:
-- `Review / merge gate`
-- `Reviewer checklist template`
-- `Reviewer guidance`
-
-### Fast-path usage
-
-- “can I commit this now?” → `Pre-commit checklist template`
-- “how should I write this commit or PR?” → use the templates
-- “is this ready to approve or merge?” → use the reviewer-side checks and verify claims against active facts
-
 ## Usage
 
-1. Determine the task responsibility area.
-2. Determine whether the project is in `normal`, `bootstrap`, or `patch` mode.
-3. If a root-level `CLAUDE.md` exists, read it first.
-4. Read only the minimum active-layer material needed for the current responsibility area.
-5. Create or patch the minimum structure only if required.
-6. Use archive only through the archive retrieval protocol.
-7. Once the active project state is clear, follow the routing table above and apply all `[必须]` rules while avoiding all `[禁止]` rules.
-8. For commit / PR / MR / merge-readiness tasks, switch to the Git workflow quick entry and apply the matching author-side or reviewer-side sections in `references/git-workflow.md`.
-9. When in doubt, default to correctness, readability, and the smallest current fact set.
+Before writing code, first determine whether project-state routing is needed to identify the smallest current fact set. Then find your action in the Routing table, read the listed reference files, apply all `[必须]` rules, and avoid all `[禁止]` rules. When in doubt about which rules apply, default to correctness and readability.

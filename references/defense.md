@@ -112,6 +112,18 @@
 
 - [语言特定][必须] 在删除一个对象之前把它填满垃圾数据，以便检测对已释放内存的引用。 | anchor=CC2.CH08.S06
 
+- [语言特定][必须] 在 Python 中：捕获具体异常类型而非裸 `except:`；使用 `finally` 或 `with`（context manager）确保资源释放；对外部数据使用 `pydantic`/`dataclasses` 做结构化验证而非手工字段检查；永远不要 `eval()`/`exec()` 外部字符串；数据库查询使用参数化而非字符串拼接。 | author=DingYiXing
+- [语言特定][必须] 在 Python 中：在生产环境起用 `PYTHONDEVMODE=1`（3.7+）进行开发期检测；使用 `assert` 仅用于不该发生的条件（会被 `-O` 优化掉），安全关键检查用显式 `if/raise`。 | author=DingYiXing
+
+- [语言特定][必须] 在 Go 中：每个可能返回错误的调用必须检查 `err != nil`；使用 `defer` 确保资源释放（`defer f.Close()`）；通过 `recover()` 捕获 panic 避免整个进程崩溃；使用 `go vet` 和 `staticcheck` 作为 lint 补充；对并发代码运行 `go test -race` 检测数据竞争。 | author=DingYiXing
+- [语言特定][必须] 在 Go 中：对外部输入使用显式边界检查和类型验证；使用 `html/template` 而非 `text/template` 渲染 HTML 防 XSS；避免裸的 `interface{}` 类型断言——优先用具体类型。 | author=DingYiXing
+
+- [语言特定][必须] 在 Rust 中：利用所有权与借用系统在编译期消除 use-after-free、double-free、数据竞争；使用 `Result<T, E>` 而非 panic 处理可恢复错误；panic 仅用于不可恢复的编程错误；`unsafe` 块应最小化并用注释写明安全不变量。 | author=DingYiXing
+- [语言特定][必须] 在 Rust 中：对外部数据优先使用 `serde` 反序列化为强类型结构体并验证字段；整数运算使用 `checked_add`/`saturating_add` 防止溢出；对 C FFI 边界使用 `std::ffi` 和 `unsafe` 隔离层。 | author=DingYiXing
+
+- [语言特定][必须] 在 TypeScript 中：启用 `strict: true`（含 strictNullChecks、noImplicitAny、strictFunctionTypes）；使用 `readonly` 和 `as const` 防止意外修改；对 API 响应使用 zod/io-ts 做运行时校验而非仅靠编译时类型。 | author=DingYiXing
+- [语言特定][必须] 在 TypeScript 中：避免 `any` 类型——优先使用 `unknown` 并按需 narrowing；DOM 操作中对用户输入用 `textContent` 而非 `innerHTML`；使用 `eslint-plugin-security` 检测安全隐患。 | author=DingYiXing
+
 - [扩展][必须] 让程序把错误日志文件用电子邮件发给开发人员（如果适用的话）。 | anchor=CC2.CH08.S06
 
 - [扩展][必须] 事先计划好如何移除调试辅助代码，避免调试代码和程序代码纠缠不清。 | anchor=CC2.CH08.S06

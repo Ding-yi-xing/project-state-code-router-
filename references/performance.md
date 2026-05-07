@@ -208,6 +208,20 @@ Additional Specific Techniques from Chapter 26 Checklist
 
 - [扩展][必须] 在仅追求速度时可选用以下方法：知道答案后停止判断、按频率排序case/if-then-else、比较相似逻辑结构性能、惰性求值、判断外提、循环展开、最小化循环内工作、哨兵值、最忙循环在最内层、削减内层循环强度、多维数组改一维、减少数组索引、扩充索引、缓存、代数恒等式、降低表达式强度、小心系统函数、内联重写子程序 | anchor=CC2.CH26.S07
 
+## Modern Language Performance Guidelines
+
+- [语言特定][必须] Python：将性能关键循环移入内置函数（`sum()`/`map()`/`filter()`——基于 C 实现，显著快于手写 for 循环）；使用 `functools.lru_cache` 缓存重复计算；使用 `__slots__` 减少对象内存开销；谨慎使用生成器（省内存但可能慢于列表）；将重计算部分用 `numpy`/`cython`/`pyo3` 重写而非手工循环优化。 | author=DingYiXing
+- [语言特定][必须] Python：使用 `collections.deque` 替代 list 做队列操作（list 头部插入为 O(n)）；字符串拼接用 `''.join()` 而非循环 `+=`（避免多次分配）；大量数据用 `array` 或 `memoryview` 替代 list。 | author=DingYiXing
+
+- [语言特定][必须] Go：使用 `pprof` 和 `go test -bench` 剖测热点；避免在热路径上分配堆内存——优先使用栈分配（逃逸分析，用 `go build -gcflags="-m"` 检查）；使用 `sync.Pool` 复用频繁创建销毁的对象；字符串拼接用 `strings.Builder` 而非 `+`；使用 `[]byte` 而非 `string` 做频繁修改。 | author=DingYiXing
+- [语言特定][必须] Go：对 slice 预分配容量（`make([]T, 0, capacity)`）避免多次扩容；使用 `io.Reader`/`io.Writer` 接口避免大块内存拷贝；goroutine 的生命周期必须可控以避免 goroutine 泄漏。 | author=DingYiXing
+
+- [语言特定][必须] Rust：使用 `cargo bench` 和 `criterion` 做性能回归；利用零成本抽象——泛型和迭代器组合器通常被编译器优化为手写循环等效代码；使用 `SmallVec`/`ArrayVec` 替代小数组上的堆分配；对热路径使用 `#[inline]` 提示编译器。 | author=DingYiXing
+- [语言特定][必须] Rust：对多次访问的数据使用 `HashMap`/`BTreeMap` 替代线性搜索；使用 `Cow<str>` 减少不必要的字符串拷贝；`Vec::with_capacity` 预分配；`collect::<Vec<_>>()` 通常被编译器优化为合适大小。 | author=DingYiXing
+
+- [语言特定][必须] TypeScript/JavaScript：使用 `Map`/`Set` 替代对象/数组做频繁查找（O(1) vs O(n)）；对 DOM 操作施加批处理——用 `DocumentFragment` 或虚拟 DOM 减少重排；在 Node.js 中使用 `Buffer` 池复用；避免在热路径中使用 `try-catch`（V8 中会禁用优化）。 | author=DingYiXing
+- [语言特定][必须] TypeScript/JavaScript：使用 `Web Workers` 或 `worker_threads` 将 CPU 密集任务移出主线程；惰性加载模块（dynamic `import()`）减小启动打包体积；对 React/UI 使用 `React.memo`/`useMemo`/`useCallback` 减少不必要的重新渲染。 | author=DingYiXing
+
 Key Points Summary (Chapter 26)
 - 优化结果在不同的语言、编译器和环境下有巨大差异；没有测量就无法判断优化是帮助还是损害程序
 - 第一次优化通常不是最好的；即使找到效果很好的，也不要停下扩大战果的步伐

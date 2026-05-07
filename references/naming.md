@@ -100,6 +100,19 @@
 - [语言特定][必须] Visual Basic：全局变量名以g_前缀开始（g_GlobalVariable） | anchor=CC2.CH11.S04
 - [语言特定][必须] Visual Basic：具名常量全部大写（CONSTANT） | anchor=CC2.CH11.S04
 - [语言特定][必须] Visual Basic：枚举类型名以反映其基础类型的、单数形式的前缀开始（Base_EnumeratedType），如Color_Red、Color_Blue | anchor=CC2.CH11.S04
+
+- [语言特定][必须] Python：类名和异常名用 PascalCase（ClassName）；函数名、方法名、变量名用 snake_case（function_name, my_var）；常量用 UPPER_SNAKE_CASE（MAX_SIZE）；模块名用 short_lowercase；包名用 shortlowercase；私有成员以单下划线前缀（_private_method）；内部私有以双下划线前缀（__internal）；避免与 Python 内置名冲突。遵循 PEP 8。 | author=DingYiXing
+- [语言特定][必须] Python：布尔变量名使用 is_ 或 has_ 前缀（is_valid、has_items）；访问器使用普通名词（size）而非 get/set（get_size → 用 @property）。 | author=DingYiXing
+
+- [语言特定][必须] Go：导出标识符首字母大写（PublicFunction、ExportedType）；非导出标识符首字母小写（privateFunc、internalVar）；包名使用小写单数短词、不使用下划线（httputil 不是 http_util）；常量用 PascalCase 或全大写；接口名通常以 -er 结尾（Reader、Writer）；避免使用 this、self、me 作为接收者名——使用类型首字母缩写（如 c 用于 Client，s 用于 Server）。遵循 Effective Go。 | author=DingYiXing
+- [语言特定][必须] Go：仅方法的接收者变量允许使用单字母名（如 c *Client）；获取器不要加 Get 前缀（Size() 而非 GetSize()）；错误变量名为 err，不另起名。 | author=DingYiXing
+
+- [语言特定][必须] Rust：类型名、trait 名、枚举变体用 PascalCase（TypeName、TraitName）；变量名、函数名、方法名用 snake_case（variable_name、fn do_something()）；常量、静态变量用 UPPER_SNAKE_CASE（MAX_SIZE）；宏名用 snake_case 或 PascalCase；模块名用 snake_case。遵循 Rust RFC 430。 | author=DingYiXing
+- [语言特定][必须] Rust：构造器默认命名为 new()；转换方法以 from_/into_/to_/as_ 前缀（from_utf8()、to_string()、as_bytes()）；布尔函数用 is_/has_ 前缀（is_empty()）；析构/移除用 drop/remove/clear/take；不要使用 get_ 前缀除非返回 Option<T>（如 get(key) → Option<&V>）。 | author=DingYiXing
+
+- [语言特定][必须] TypeScript：类名、接口名、类型别名、枚举名用 PascalCase（ClassName、IUser 或 User）；变量名、函数名、方法名、属性名用 camelCase（localVariable、doSomething()）；常量用 UPPER_SNAKE_CASE 或 camelCase（团队统一即可）；枚举成员用 PascalCase（Color.Red）；私有成员不使用下划线前缀（用 private 关键字）。 | author=DingYiXing
+- [语言特定][必须] TypeScript：布尔变量以 is/has/should/can 开头（isActive、hasPermission）；数组变量名用复数或带 List 后缀（users 或 userList）；回调/事件处理函数以 on/handle 前缀（onClick、handleSubmit）；类型守卫函数以 is 前缀（isString(x)）。 | author=DingYiXing
+
 ### 11.5 标准前缀
 - [扩展][必须] 对具有通用含义的前缀标准化 | anchor=CC2.CH11.S05
 - [扩展][必须] 使用用户自定义类型（UDT）缩写来标识被命名对象或变量的数据类型 | anchor=CC2.CH11.S05

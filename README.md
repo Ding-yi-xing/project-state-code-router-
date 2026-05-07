@@ -51,8 +51,7 @@ If collaboration docs are incomplete, create only what is missing.
 ### 5. Responsibility-aware reading
 The skill routes tasks into the narrowest responsibility area that fits:
 
-- `delivery-surface`
-- `service-domain`
+- work unit (`<unit-name>`)
 - `pm`
 - `cross-area`
 
@@ -123,23 +122,26 @@ When bootstrapping, the skill expects a minimal shared documentation layout like
 ├── CLAUDE.md
 ├── docs/
 │   ├── .project-docs-manifest.yaml
-│   ├── 00-导航/
-│   │   └── 项目经理导航文档.md
-│   ├── 10-共享状态/
-│   │   ├── 当前阶段目标与范围.md
-│   │   ├── 当前任务优先级清单.md
-│   │   ├── 当前阻塞与待修复问题清单.md
-│   │   ├── 当前验收标准清单.md
-│   │   ├── 当前实现边界对照.md
-│   │   └── 当前锁定范围与禁止主动重构清单.md
-│   ├── 20-交付面/
-│   ├── 30-服务域/
-│   ├── 40-项目治理/
-│   │   ├── 项目协作与开发原则.md
-│   │   └── AI防脏读与防回滚规则.md
-│   ├── 90-过程记录/
-│   │   └── 000-项目初始化.md
-│   └── 99-归档/
+│   ├── navigation/
+│   │   └── 项目导航.md
+│   ├── shared/
+│   │   ├── README.md
+│   │   ├── current/
+│   │   │   ├── 当前阶段目标与范围.md
+│   │   │   ├── 当前任务优先级清单.md
+│   │   │   ├── 当前阻塞与待修复问题清单.md
+│   │   │   ├── 当前验收标准清单.md
+│   │   │   ├── 当前实现边界对照.md
+│   │   │   └── 当前锁定范围与禁止主动重构清单.md
+│   │   ├── contracts/
+│   │   ├── decisions/
+│   │   ├── milestones/
+│   │   └── archive/
+│   ├── units/
+│   │   ├── .template/
+│   │   └── <unit-name>/
+│   └── process/
+│       └── 000-项目初始化.md
 ```
 
 The file names can be localized or adapted, but the structure should preserve the same semantics:
@@ -196,7 +198,7 @@ project-state-code-router/
 
 Use this skill when Claude is asked to:
 
-- continue work in a specific delivery surface or service domain
+- continue work in a specific work unit
 - write or modify code in an existing project
 - bootstrap collaboration docs for a new repository
 - patch missing collaboration docs in a partially structured repository
@@ -214,17 +216,17 @@ Use this skill when Claude is asked to:
 
 ## Responsibility routing examples
 
-### Example: frontend page task
-Read only the current delivery-surface entry, boundaries, acceptance criteria, and locked zones for that surface.
+### Example: work unit task
+Read only the current work unit's manifest.md and status.md, plus boundaries, acceptance criteria, and locked zones for that unit.
 
 ### Example: API bug fix
-Read only the relevant service-domain entry, interface/data contract if needed, and blocker list only if the task is truly blocked.
+Read only the relevant work unit's manifest.md and status.md, interface/data contract if needed, and blocker list only if the task is truly blocked.
 
 ### Example: PM coordination
 Read scope, priorities, acceptance, and lock decisions — not all engineering detail.
 
-### Example: cross-area integration issue
-Read only the directly involved responsibility-area entries plus shared blockers and task-specific contracts.
+### Example: cross-unit integration issue
+Read only the directly involved work unit entries plus shared blockers and task-specific contracts.
 
 ## Comment philosophy in this skill
 
@@ -242,7 +244,7 @@ In practice, the effective default is:
 
 This skill is especially useful if you want Claude to work well in repositories that have:
 
-- multiple delivery surfaces or service domains
+- multiple work units
 - active work plus a lot of historical documentation
 - shared collaboration docs at the project root
 - a need to prevent AI dirty reads and accidental rollback to old designs
@@ -255,7 +257,7 @@ You will probably want to adapt:
 - responsibility area names
 - collaboration docs file names
 - active-core file list
-- delivery surface / service domain taxonomy
+- work unit taxonomy
 - project-language-specific references
 - comment and documentation expectations
 

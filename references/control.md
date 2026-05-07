@@ -50,6 +50,10 @@
 - [语言特定][必须] 在 C/C++/Java 中，确保每个 case 子句末尾都有 break，避免代码意外执行越过 case 子句末尾 | anchor=CC2.CH15.S03
 - [语言特定][禁止] 在 C/C++/Java 中，避免代码执行路径越过 case 子句末尾的无注释贯穿 | anchor=CC2.CH15.S03
 - [语言特定][必须] 在 C/C++/Java 中，如果故意让代码穿越 case 子句末尾，需给出明确注释解释原因 | anchor=CC2.CH15.S03
+- [语言特定][必须] 在 Python 3.10+ 中，优先使用 match-case 语句替代长串 if-elif-else；利用模式匹配的值解构和守卫子句简化嵌套判断；match 会自动拒绝贯穿，无需 break。 | author=DingYiXing
+- [语言特定][必须] 在 Rust 中，match 表达式必须穷尽所有变体；使用 _ => 作为通配分支；对 Option/Result 类型优先使用 if let / while let 替代单分支 match。 | author=DingYiXing
+- [语言特定][必须] 在 Go 中，switch 默认不贯穿（无需 break）；如需贯穿显式使用 fallthrough；switch 可无表达式作为 if-else 链的替代。 | author=DingYiXing
+- [语言特定][必须] 在 TypeScript 中，使用 discriminated union 配合 switch 实现穷尽检查——在 default 分支中用 never 类型确保所有变体已处理。 | author=DingYiXing
 - [扩展][必须] 为代码的每个部分选用最合适的控制结构 | anchor=CC2.CH15.S01
 
 ## Loops
@@ -63,6 +67,10 @@
 - [扩展][必须] 如果存在必须从循环中跳出的条件，应改用 while 循环而非 for 循环 | anchor=CC2.CH16.S01
 - [扩展][禁止] 不要在 for 循环中通过直接修改下标值的方式迫使其终止 | anchor=CC2.CH16.S01
 - [语言特定][必须] 对数组或其他容器的各项元素执行操作时，使用 foreach 循环或其等价物（C# foreach、Visual Basic For-Each、Python for-in） | anchor=CC2.CH16.S01
+- [语言特定][必须] 在 Python 中遍历序列使用 `for item in iterable`；不要使用 `for i in range(len(seq))` 再通过下标访问；需要下标时使用 `enumerate()`；遍历多个序列用 `zip()`；使用生成器表达式和列表推导替代显式 for 循环构建列表。 | author=DingYiXing
+- [语言特定][必须] 在 Rust 中，使用 `for item in &collection` 或 `iter()`/`iter_mut()`/`into_iter()` 遍历；优先使用 Iterator 组合器（map/filter/fold/collect）替代手动 for 循环；避免在迭代中修改集合。 | author=DingYiXing
+- [语言特定][必须] 在 Go 1.22+ 中，使用 `for _, item := range slice`；遍历 map 时注意迭代顺序不固定；对 channel 使用 `for msg := range ch`；不要用 range 遍历字符串——用 `for _, r := range s` 处理 rune。 | author=DingYiXing
+- [语言特定][必须] 在 TypeScript 中，优先使用 `for...of`（而非 `for...in`）遍历可迭代对象；对数组使用 `.forEach()`/`.map()`/.`filter()` 链式方法；对 Map/Set 使用 `.forEach()`。 | author=DingYiXing
 - [核心][必须] 当循环至少需要执行一次时，使用在结尾处检测的循环（do-while 或等价结构） | anchor=CC2.CH16.S01
 - [扩展][必须] 尽量减少能影响循环的各种因素的数量——简化、简化、再简化 | anchor=CC2.CH16.S02
 - [扩展][必须] 将循环内部视为一个黑盒子，把循环控制条件放在循环体外，让外围程序只知其控制条件而不知其内容 | anchor=CC2.CH16.S02
@@ -185,6 +193,10 @@
 - [语言特定][必须] 在 C/C++ 中，对指针使用显式的 NULL 比较（while (bufferPtr != NULL) 而非 while (bufferPtr)） | anchor=CC2.CH19.S01
 - [语言特定][禁止] 在 C++ 中滥用 #define 宏替换 &&、|| 和 ==。应当优先打开编译器全部警告来捕获这类错误 | anchor=CC2.CH19.S01
 - [语言特定][必须] 在 Java 中，区分 a == b（引用同一性）和 a.equals(b)（值相等）的差异。在判断对象值相等时应使用 a.equals(b) | anchor=CC2.CH19.S01
+- [语言特定][必须] 在 Python 中，使用 `is` 判断 None 和单例（`x is None`），使用 `==` 判断值相等；对布尔值使用隐式真值检测（`if items:` 而非 `if len(items) > 0:`）；自定义类定义 `__bool__` 或 `__len__` 来支持真值检测。 | author=DingYiXing
+- [语言特定][必须] 在 Rust 中，使用 `==` 比较值（需实现 PartialEq）；使用 `matches!` 宏进行模式匹配布尔检测；对 Option 使用 `.is_some()`/`.is_none()`；对 Result 使用 `.is_ok()`/`.is_err()`。 | author=DingYiXing
+- [语言特定][必须] 在 Go 中，使用 `==` 比较基本类型和可比较类型；interface/nil 检查使用显式写法 `if err != nil` 而非简写 `if err`；slice/map/function 只能与 nil 比较。 | author=DingYiXing
+- [语言特定][必须] 在 TypeScript 中，使用 `===` 和 `!==`（严格相等），禁止 `==` 和 `!=`；启用 strictNullChecks 后使用 `??`（空值合并）和 `?.`（可选链）简化空值判断。 | author=DingYiXing
 - [扩展][必须] 先写出块结构的开始和结束部分（括号对），再填充中间内容 | anchor=CC2.CH19.S02
 - [扩展][必须] 始终使用括号/块来清晰地表达条件语句的范围，即使块内只有一条语句 | anchor=CC2.CH19.S02
 - [扩展][必须] 突出显示空语句的存在：将空语句的分号单独放在一行并适当缩进，或使用空括号 {} 来强调 | anchor=CC2.CH19.S03
