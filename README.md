@@ -171,6 +171,7 @@ project-state-code-router/
     ├── project-state.md
     ├── quality.md
     ├── refactoring.md
+    ├── overrides.md
     ├── templates.md
     ├── warning-signs.md
     └── writing.md
@@ -187,6 +188,10 @@ project-state-code-router/
   - responsibility lookup
   - active/reference/archive handling
   - bootstrap/patch safety
+
+- `references/overrides.md`
+  - modern default behavior overrides — downgrades or disables legacy CC2 rules that conflict with modern practice
+  - loaded before all other reference files; overrides always win
 
 - `references/bootstrap-templates.md`
   - minimal content expectations for collaboration docs

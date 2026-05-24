@@ -82,15 +82,42 @@ Before doing implementation work in this project:
 ```
 
 ### docs/.project-docs-manifest.yaml
-Must include:
-- schema_version
-- structure_version
-- initialized_by
-- initialized_at
-- responsibility_lookup
-- roles
-- work_units
-- active_core_files
+
+This is the single source of truth for responsibility routing and active-layer discovery. Every field described below must be present in a valid manifest.
+
+#### Required fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schema_version` | integer | Schema format version. Current: `1`. Skill checks this to detect incompatibility. |
+| `structure_version` | integer | Project-specific layout version. Increment when the docs directory structure changes. |
+| `initialized_by` | string | Identifier of the tool/skill/person that created the manifest. |
+| `initialized_at` | string | ISO 8601 date (e.g. `2026-05-24`). |
+| `responsibility_lookup` | object | Defines how to resolve responsibility for a task. Must contain `primary_source` (path to the file that owns responsibility mapping) and `fallback_action` (one of `ask-user`, `ask-pm`, `prompt-create-unit`). |
+| `roles` | object | Maps role keys (`pm`, `cross_area`, or custom roles) to their entry files. Each role entry must have an `entry` field pointing to the navigation or status file for that role. |
+| `work_units` | array | List of work unit objects. May be empty (`[]`) if no units have been created yet. |
+| `active_core_files` | array of strings | Ordered list of paths (relative to project root) that form the default active-layer reading set. Files are read in the order listed. |
+
+#### Work unit entries
+
+Each entry in `work_units`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `key` | string | yes | Machine-readable unit identifier (e.g. `order-service`). Used as the directory name under `docs/units/`. |
+| `label` | string | yes | Human-readable display name (e.g. `订单服务`). |
+| `owner` | string | yes | Team or person responsible for this unit. |
+| `entry` | string | yes | Path to the unit's `manifest.md` file. |
+
+#### Optional fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | One-line description of the project. |
+| `docs_root` | string | Custom docs directory path. Defaults to `docs/`. |
+| `archive_readonly` | boolean | Whether archive is strictly read-only. Defaults to `true`. |
+| `reactivation_required` | boolean | Whether archived items must be reactivated (new entry) rather than directly edited. Defaults to `true`. |
+| `layer_priority` | array of strings | Override precedence order. Default: `["active", "reference", "archive"]`. For modern-override behavior, set to `["modern_override", "active", "reference", "archive"]`. |
 
 Suggested minimal shape:
 
@@ -162,7 +189,7 @@ Must include:
 Must include:
 - 当前阶段目标
 - 当前范围
-- 明确不在范围内
+- 明确不在范围内（**粒度原则**：每一项必须包含具体名称——字段名、接口路径、文件名、包名，禁止使用"排序/筛选功能"等分类概括）
 - 成功定义
 
 ### docs/shared/current/当前任务优先级清单.md
@@ -198,9 +225,10 @@ Must include:
 
 ### docs/shared/current/当前锁定范围与禁止主动重构清单.md
 Must include:
-- 已完成且锁定的工作单元/模块/接口
+- 已完成且锁定的工作单元/模块/接口（**粒度原则**：每项必须包含具体接口路径、类名、文件名或字段名）
 - 禁止主动改动的原因
 - 允许修改的边界
+- 被明确否决的扩展请求及否决依据（如：priority 字段 — 不在 MVP 范围，详见 当前阶段目标与范围.md）
 
 ## Work unit minimum structure
 
