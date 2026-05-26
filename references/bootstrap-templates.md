@@ -6,6 +6,7 @@ author=DingYiXing
 **Core:** create only the smallest structure that supports current truth, responsibility lookup, and work-unit routing.
 **Extended:** suggested headings and minimal contents.
 **Often used with:** project-state.md.
+**Read Next If:** the project will use architecture-enforced layer boundaries → architecture-layers.md; the project needs doc-gardening or code-rot GC → gc-rules.md; writing CLAUDE.md routing contract → project-state.md (Responsibility routing section).
 
 ## Create only these directories by default
 
@@ -16,6 +17,12 @@ These collaboration docs belong at the project root directory and should sit alo
 ├── CLAUDE.md
 ├── docs/
 │   ├── .project-docs-manifest.yaml
+│   ├── DESIGN.md            # 长期设计原则（可选）
+│   ├── FRONTEND.md          # 前端原则（可选）
+│   ├── RELIABILITY.md       # 可靠性原则（可选）
+│   ├── SECURITY.md          # 安全原则（可选）
+│   ├── PRODUCT_SENSE.md     # 产品判断原则（可选）
+│   ├── GOLDEN_RULES.md      # 项目级机械规则清单（可选，见 gc-rules.md）
 │   ├── navigation/
 │   │   └── 项目导航.md
 │   ├── shared/
@@ -30,9 +37,17 @@ These collaboration docs belong at the project root directory and should sit alo
 │   │   ├── contracts/
 │   │   ├── decisions/
 │   │   ├── milestones/
+│   │   ├── exec-plans/
+│   │   │   ├── active/
+│   │   │   ├── completed/
+│   │   │   └── tech-debt-tracker.md
+│   │   ├── generated/
 │   │   └── archive/
 │   ├── units/
 │   │   └── .template/
+│   ├── references/          # 喂给 AI 的稳定外部参考（可选）
+│   │   ├── <lib-a>-llms.txt
+│   │   └── <lib-b>-llms.txt
 │   └── process/
 │       └── 000-项目初始化.md
 ├── <top-level-code-dir-a>/
@@ -80,6 +95,95 @@ Before doing implementation work in this project:
 - Shared facts: `docs/shared/current/`
 - Work-unit entry files: see manifest entries
 ```
+
+## Plans as first-class artifacts
+
+OpenAI 在 Harness Engineering 一文里把"计划"提升为一流工件：
+
+> 计划被视为一流的工件。临时轻量计划用于小幅变更，而复杂工作则记录在执行计划中，并附带进度和决策日志，这些日志会被提交到代码仓库。活跃计划、已完成计划和已知的技术债务都已进行版本控制并集中存放。
+
+skill 推荐的对应位置：
+
+| 类型 | 位置 | 用途 |
+|---|---|---|
+| **轻量计划**（小幅变更） | 不落盘，直接在对话或 PR 描述里说清 | 1-3 步能完成、不需要回看的变更 |
+| **执行计划（active）** | `docs/shared/exec-plans/active/` | 进行中的复杂工作；每份含进度日志 + 决策日志 |
+| **执行计划（completed）** | `docs/shared/exec-plans/completed/` | 完成后从 active/ 移过来，作为历史决策可查证；不删 |
+| **技术债** | `docs/shared/exec-plans/tech-debt-tracker.md` | 已知但暂不修的债，定期被 GC 巡检（见 gc-rules.md） |
+| **生成态契约** | `docs/shared/generated/` | 由代码或工具自动生成的契约文件（如 db-schema.md、openapi.json）；不手改 |
+
+执行计划文件建议结构：
+
+```md
+# <计划标题>
+
+status: active | completed
+owner: <person or team>
+created_at: 2026-05-26
+started_at: 2026-05-26
+completed_at: -
+related_units: [<unit-key>, ...]
+
+## 目标
+<这个计划要达成什么>
+
+## 拆解
+- [ ] 步骤 1：...
+- [ ] 步骤 2：...
+- [x] 步骤 3：（已完成）
+
+## 进度日志
+- 2026-05-26: 启动
+- 2026-05-27: 完成步骤 3，发现步骤 1 需要拆分为 1a/1b
+
+## 决策日志
+- 2026-05-26: 选 zod 而非 yup（理由：与现有 schema 一致）
+- 2026-05-27: 不在本期处理 X，挪到 tech-debt-tracker.md
+```
+
+完成后只需要把 `status` 改成 `completed`、填 `completed_at`、把文件从 `active/` 移到 `completed/`。
+
+**为什么提升计划为一流工件**：智能体下次接手时可以**只读这一份文件**就理解上下文、之前的尝试、为什么这么做 — 不需要去翻 chat 历史或外部系统。这正是 OpenAI 帖子里讲的"代码仓库即 system of record"。
+
+## 长期原则文件 vs 当前阶段事实
+
+`docs/shared/current/` 关注**当前阶段**（这一期要做什么、阻塞、验收）— 内容会随版本演进。
+
+`docs/` 根级则放**跨阶段、长期稳定**的原则文件 — 内容半年甚至一年才动一次。这两层是不同维度，不应该混。
+
+OpenAI 仓库根级的对应文件：
+
+| 文件 | 内容 | 谁该写 |
+|---|---|---|
+| `DESIGN.md` | 设计哲学、核心理念、什么算"好的实现" | 团队技术决策者 |
+| `FRONTEND.md` | 前端原则（如统一组件库、状态管理范式、可访问性底线） | 前端负责人 |
+| `RELIABILITY.md` | 可用性目标、错误预算、降级策略、SLO | SRE / 后端负责人 |
+| `SECURITY.md` | 威胁模型、必须遵守的安全约束、审计点 | 安全负责人 |
+| `PRODUCT_SENSE.md` | 产品判断准则、用户优先级、什么是"我们要做的产品" | 产品 / 设计 |
+| `GOLDEN_RULES.md` | 项目级机械规则清单（见 gc-rules.md） | 团队共识 |
+| `ARCHITECTURE.md` | 顶层架构图、域和包分层（详见 `references/architecture-layers.md`） | 技术负责人 |
+
+不强制必须有几份；按项目实际需要选。命名也可按团队习惯改（如中文名）。
+
+skill 默认不创建这些文件 — 它们的内容只能由人写，不能模板化。bootstrap 时只创建空文件 + 一段 "TODO: fill in" 占位，或者根本不创建，等首次需要时再写。
+
+## docs/references/ — 喂给 AI 的稳定外部参考
+
+OpenAI 仓库里把 `design-system-reference-llms.txt`、`nixpacks-llms.txt`、`uv-llms.txt` 等放在 `references/` 下。这些是**外部依赖的精炼参考**，专门为智能体准备：
+
+> 对智能体来说，通常被称为"枯燥"的技术，由于其可组合性、API 稳定性和在训练集里的表现，往往更容易建立模型。
+
+文件来源：
+- 直接拷贝该库的 `llms.txt`（越来越多库自带，如 `https://docs.<lib>.com/llms.txt`）
+- 从该库文档里精简一份"我们这个项目用到的子集"
+- 自己写的"我们怎么用这个库 + 已知陷阱"
+
+示例命名：
+- `docs/references/zod-llms.txt`
+- `docs/references/playwright-mcp-llms.txt`
+- `docs/references/our-design-system-llms.txt`
+
+注意：这里说的是**下游项目内部的 references/**（即 `docs/references/`），与本 skill 仓库自己的 `references/` 是两个不同的目录。下游项目不应该把 skill 的 reference 文件复制过去。
 
 ### docs/.project-docs-manifest.yaml
 

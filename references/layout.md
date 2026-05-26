@@ -3,8 +3,8 @@
 **Scope:** Code formatting: indentation, spacing, blank lines, line breaks.
 **Core:** logical structure clarity, consistent indentation — always apply.
 **Extended:** brace placement, line length, alignment details.
-**Often used with:** comments.md, writing.md.
-**Read Next If:** formatting code → comments.md; project style conventions → writing.md.
+**Often used with:** naming.md, design.md.
+**Read Next If:** formatting code → naming.md; project comment philosophy → overrides.md (modern comment overrides).
 
 ## Formatting Fundamentals
 

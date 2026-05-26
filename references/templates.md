@@ -1,10 +1,10 @@
-﻿# Code Templates
+# Code Templates
 
 **Scope:** Reusable patterns for files, functions, tests.
-**Core:** 鈥?this file is entirely selection guidance.
-**Extended:** template selection criteria 鈥?when to use each template.
-**Often used with:** writing.md, quality.md, layout.md.
-**Read Next If:** creating new files 鈫?layout.md; writing functions 鈫?writing.md; writing tests 鈫?quality.md.
+**Core:** — this file is entirely selection guidance.
+**Extended:** template selection criteria — when to use each template.
+**Often used with:** layout.md, quality.md, naming.md.
+**Read Next If:** creating new files → layout.md; writing functions / tests → quality.md; naming the new symbol → naming.md.
 
 ## Quick Selection Guide
 
@@ -17,7 +17,7 @@
 | A new unit test | test-naming + test-aaa | Always use AAA structure |
 | Many equivalent test cases | test-parametrized | Pure function, many I/O pairs |
 
-## module 鈥?Module Docstring
+## module — Module Docstring
 
 **Use When:** Creating a new Python module (.py file).
 **Must Include:** One-line summary, Dependencies, Inputs, Outputs.
@@ -25,22 +25,26 @@
 **Do Not Use When:** File is a trivial entry-point script with zero imports.
 
 ```python
-"""<涓€鍙ヨ瘽姒傝堪妯″潡鑱岃矗>.
+"""<一句话概述模块职责>.
 
-<鎵╁睍鎻忚堪锛屽彲閫?銆?
+<扩展描述，可选>。
+
 Boundaries:
-    <妯″潡璐熻矗鐨勮竟鐣岋紝涓嶈礋璐ｇ殑鍐呭>銆?
+    <模块负责的边界，不负责的内容>。
+
 Dependencies:
-    - <澶栭儴渚濊禆 1>
-    - <澶栭儴渚濊禆 2>
+    - <外部依赖 1>
+    - <外部依赖 2>
 
 Inputs:
-    <妯″潡鎺ユ敹鐨勮緭鍏ユ暟鎹祦鎴栭厤缃?銆?
+    <模块接收的输入数据流或配置>。
+
 Outputs:
-    <妯″潡浜у嚭鐨勮緭鍑烘暟鎹祦鎴栧壇浣滅敤>銆?"""
+    <模块产出的输出数据流或副作用>。
+"""
 ```
 
-## class 鈥?Class Docstring
+## class — Class Docstring
 
 **Use When:** Defining any non-trivial class or data structure.
 **Must Include:** One-line summary, Invariants.
@@ -49,20 +53,23 @@ Outputs:
 
 ```python
 class MyClass:
-    """<涓€鍙ヨ瘽姒傝堪绫绘娊璞?.
+    """<一句话概述类抽象>.
 
-    <鎵╁睍鎻忚堪锛屽彲閫?銆?
+    <扩展描述，可选>。
+
     Invariants:
-        <濮嬬粓涓虹湡鐨勭害鏉熸潯浠?銆?
+        <始终为真的约束条件>。
+
     Collaborators:
-        - <鍗忎綔绫?1>
-        - <鍗忎綔绫?2>
+        - <协作类 1>
+        - <协作类 2>
 
     Lifecycle:
-        <鍒涘缓 鈫?浣跨敤 鈫?閿€姣佺殑鍏抽敭闃舵>銆?    """
+        <创建 → 使用 → 销毁的关键阶段>。
+    """
 ```
 
-## function 鈥?Function Docstring
+## function — Function Docstring
 
 **Use When:** Writing a public function or any function with non-obvious behavior.
 **Must Include:** One-line summary, Args, Returns.
@@ -71,27 +78,29 @@ class MyClass:
 
 ```python
 def my_func(param1, param2):
-    """<涓€鍙ヨ瘽姒傝堪鍑芥暟鐩殑>.
+    """<一句话概述函数目的>.
 
-    <鎵╁睍鎻忚堪锛屽彲閫?銆?
+    <扩展描述，可选>。
+
     Args:
-        param1 (Type): <鍙傛暟璇存槑>.
-        param2 (Type): <鍙傛暟璇存槑>.
+        param1 (Type): <参数说明>.
+        param2 (Type): <参数说明>.
 
     Returns:
-        Type: <杩斿洖鍊艰鏄庯紱鏃犺繑鍥炲€兼椂鍐?None>銆?
+        Type: <返回值说明；无返回值时写 None>。
+
     Raises:
-        ErrorType: <鍦ㄤ粈涔堟潯浠朵笅鎶涘嚭姝ゅ紓甯?.
+        ErrorType: <在什么条件下抛出此异常>.
 
     Side Effects:
-        <淇敼鍏ㄥ眬鐘舵€併€佸啓鍏ユ枃浠躲€佸彂閫佺綉缁滆姹傜瓑>.
+        <修改全局状态、写入文件、发送网络请求等>.
 
     Preconditions:
-        <璋冪敤鍓嶅繀椤绘弧瓒崇殑鏉′欢>.
+        <调用前必须满足的条件>.
     """
 ```
 
-## file-header 鈥?File Header Block
+## file-header — File Header Block
 
 **Use When:** Creating a new source file in a multi-file project.
 **Must Include:** FILE, BRIEF.
@@ -102,17 +111,17 @@ def my_func(param1, param2):
 # //////////////////////////////////////////////////////////////////////////////
 # //  FILE:    <filename.ext>
 # //  MODULE:  <parent_package.module_name>
-# //  BRIEF:   <涓€鍙ヨ瘽姒傝堪鏈枃浠惰亴璐?
+# //  BRIEF:   <一句话概述本文件职责>
 # //
 # //  FUNCTIONS:
-# //    <function_name_1>  鈥?<涓€鍙ヨ瘽鍔熻兘>
-# //    <function_name_2>  鈥?<涓€鍙ヨ瘽鍔熻兘>
+# //    <function_name_1>  — <一句话功能>
+# //    <function_name_2>  — <一句话功能>
 # //
-# //  DEPENDS: <澶栭儴鍖?妯″潡鍒楄〃锛岄€楀彿鍒嗛殧>
+# //  DEPENDS: <外部包/模块列表，逗号分隔>
 # //////////////////////////////////////////////////////////////////////////////
 ```
 
-## large-function-header 鈥?Public Function Header Block
+## large-function-header — Public Function Header Block
 
 **Use When:** Writing a public API function or a function longer than ~30 lines.
 **Must Include:** NAME, PURPOSE, INPUT (all params), OUTPUT.
@@ -122,29 +131,34 @@ def my_func(param1, param2):
 ```
 # ==============================================================================
 # NAME:      <function_name>
-# PURPOSE:   <涓€鍙ヨ瘽姒傝堪鍑芥暟鐩殑>
-# INPUT:     <param1> | <type1> | <璇存槑>
-#            <param2> | <type2> | <璇存槑>
-# OUTPUT:    <return_type> 鈥?<杩斿洖鍊艰鏄庯紱鏃犺繑鍥炲€煎啓 None>
-# SIDE-FX:   <鍓綔鐢ㄨ鏄庯紱鏃犲壇浣滅敤鍐?"none">
-# RAISES:    <ExceptionType> 鈥?<鍦ㄤ粈涔堟潯浠朵笅鎶涘嚭锛涗笉鎶涘紓甯稿啓 "none">
+# PURPOSE:   <一句话概述函数目的>
+# INPUT:     <param1> | <type1> | <说明>
+#            <param2> | <type2> | <说明>
+# OUTPUT:    <return_type> — <返回值说明；无返回值写 None>
+# SIDE-FX:   <副作用说明；无副作用写 "none">
+# RAISES:    <ExceptionType> — <在什么条件下抛出；不抛异常写 "none">
 # ==============================================================================
 ```
 
-- INPUT 姣忚涓€涓弬鏁帮紝涓変釜淇℃伅鐢?` | ` 鍒嗛殧锛屾寜杈撳叆鈫掍慨鏀光啋杈撳嚭椤哄簭鎺掑垪銆?- OUTPUT 鑻ヨ繑鍥炵粨鏋勫鏉傦紝鍒嗚鍒楀嚭鍚勫瓧娈靛惈涔夈€?- SIDE-FX 鍚慨鏀瑰叏灞€鐘舵€併€佸啓鏂囦欢銆佸彂缃戠粶璇锋眰銆佹墦鍗拌緭鍑虹瓑銆備笉閬楁紡銆?- RAISES 鍙垪璋冪敤鏂瑰簲鎰熺煡鐨勫紓甯革紝涓嶅垪鍐呴儴瀹炵幇鎶涘嚭鐨勫紓甯搞€?
-## small-function-header 鈥?Compact Function Header
+- INPUT 每行一个参数，三个信息用 ` | ` 分隔，按输入→修改→输出顺序排列。
+- OUTPUT 若返回结构复杂，分行列出各字段含义。
+- SIDE-FX 含修改全局状态、写文件、发网络请求、打印输出等。不遗漏。
+- RAISES 只列调用方应感知的异常，不列内部实现抛出的异常。
+
+## small-function-header — Compact Function Header
 
 **Use When:** Writing a private helper or small (<15 lines) function that still needs documentation.
 **Must Include:** Function name, one-line purpose, return type.
 **May Omit:** Parameter type annotations (if obvious), parameter names (if >80 chars).
-**Do Not Use When:** Function is public API or has complex semantics 鈥?use large-function-header.
+**Do Not Use When:** Function is public API or has complex semantics — use large-function-header.
 
 ```
-# --- <function_name> --- <涓€鍙ヨ瘽鍔熻兘>. IN: (<param1>: <type1>, ...). OUT: <return_type> 鈥?<璇存槑>. ---
+# --- <function_name> --- <一句话功能>. IN: (<param1>: <type1>, ...). OUT: <return_type> — <说明>. ---
 ```
 
-- 鍗曡鍐呭畬鎴愶紝涓嶆崲琛屻€傝嫢鍙傛暟鍒楄〃杩囬暱锛?80 瀛楃锛夛紝鍙缉鐣ヤ负绫诲瀷鍚嶇渷鐣ュ弬鏁板悕銆?
-## test-naming 鈥?Test Function Naming
+- 单行内完成，不换行。若参数列表过长（>80 字符），可省略为类型名省略参数名。
+
+## test-naming — Test Function Naming
 
 **Use When:** Writing any test function.
 **Must Include:** test_ prefix, unit under test, scenario.
@@ -152,7 +166,7 @@ def my_func(param1, param2):
 **Do Not Use When:** Using a test framework with incompatible naming rules.
 
 ```
-# test_<琚祴鍗曞厓>_<鍦烘櫙>_<棰勬湡缁撴灉>
+# test_<被测单元>_<场景>_<预期结果>
 def test_process_orders_empty_input_raises_value_error():
     ...
 
@@ -163,7 +177,7 @@ def test_process_orders_invalid_email_reports_error():
     ...
 ```
 
-## test-aaa 鈥?AAA Test Structure
+## test-aaa — AAA Test Structure
 
 **Use When:** Writing unit tests for deterministic functions or methods.
 **Must Include:** Arrange, Act, Assert sections with blank-line separation.
@@ -172,29 +186,32 @@ def test_process_orders_invalid_email_reports_error():
 
 ```python
 def test_<unit>_<scenario>_<expected>():
-    # -- Arrange: 鍑嗗琚祴瀵硅薄鍜岃緭鍏ユ暟鎹?--
+    # -- Arrange: 准备被测对象和输入数据 --
     input_data = ...
     expected = ...
 
-    # -- Act: 鎵ц琚祴琛屼负 --
+    # -- Act: 执行被测行为 --
     result = some_function(input_data)
 
-    # -- Assert: 楠岃瘉缁撴灉涓庨鏈熶竴鑷?--
+    # -- Assert: 验证结果与预期一致 --
     assert result == expected
 ```
 
-- AAA 涓夋涓嶅悎骞讹紝绌鸿鍒嗛殧锛屾柇瑷€涓嶅紩鍏ョ涓夋柟妗嗘灦銆?
-## test-parametrized 鈥?Parameterized Test
+- AAA 三步不合并，空行分隔，断言不引入第三方框架。
+
+## test-parametrized — Parameterized Test
 
 **Use When:** Testing a pure function with many equivalent input/output pairs.
-**Must Include:** Parametrize decorator, case comments labeling category (杈圭晫/姝ｅ父/寮傚父), fail-fast first case.
+**Must Include:** Parametrize decorator, case comments labeling category (边界/正常/异常), fail-fast first case.
 **May Omit:** Exhaustive edge cases (use a separate property-based test).
-**Do Not Use When:** Test logic branches significantly per case 鈥?use separate test functions.
+**Do Not Use When:** Test logic branches significantly per case — use separate test functions.
 
 ```python
 @pytest.mark.parametrize("input_val, expected", [
-    (None,     ValueError),     # 杈圭晫锛歂one
-    ("",       ValueError),     # 杈圭晫锛氱┖瀛楃涓?    ("a@b.c",  True),           # 姝ｅ父锛氭渶灏忔湁鏁?    ("a"*100 + "@b.c", True),   # 杈圭晫锛氶暱 local-part
+    (None,             ValueError),     # 边界：None
+    ("",               ValueError),     # 边界：空字符串
+    ("a@b.c",          True),           # 正常：最小有效
+    ("a"*100 + "@b.c", True),           # 边界：长 local-part
 ])
 def test_validate_email(input_val, expected):
     if expected is ValueError:
@@ -204,4 +221,5 @@ def test_validate_email(input_val, expected):
         assert validate_email(input_val) == expected
 ```
 
-- 鍙傛暟鍖栧垪琛ㄤ腑姣忔潯 case 娉ㄩ噴璇存槑瑕嗙洊鐨勬祴璇曠被鍒紙杈圭晫/姝ｅ父/寮傚父锛夈€?- 绗竴涓?case 閫氬父鏀炬渶甯歌Е鍙戠殑閿欒璺緞銆?
+- 参数化列表中每条 case 注释说明覆盖的测试类别（边界/正常/异常）。
+- 第一个 case 通常放最常触发的错误路径。

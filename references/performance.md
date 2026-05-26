@@ -3,7 +3,7 @@
 **Scope:** Code optimization: measurement, bottlenecks, trade-offs.
 **Core:** measure-first principle, correctness preservation — always apply.
 **Extended:** specific optimization techniques, language-specific tuning.
-**Often used with:** writing.md, control.md.
+**Often used with:** quality.md, control.md.
 **Read Next If:** code tuning → control.md; measurement strategy → quality.md.
 
 ## Performance Strategy

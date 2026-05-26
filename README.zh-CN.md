@@ -1,289 +1,243 @@
 # project-state-code-router
 
-一个 Claude Code 技能，用来**先根据项目当前状态路由编码任务**，再通过**最小读取、低脏读风险**的流程应用实现约束。
+一个把**项目状态协作路由**与 **Code Complete 2 编码规范**融合在一起的 Claude Code skill。在原有 CC2 现代化覆盖层之上，又吸收了 **OpenAI Harness Engineering** 一文里的"入口即目录、定期回收、严格架构边界、计划即一流工件"等实践。
 
-这个技能适用于这样一类仓库：AI coding 不应该无差别扫描整个仓库，不应该默认相信旧计划，也不应该在任务尚未定界时就套用宽泛的风格规则。它帮助 Claude 判断：
+它帮 Claude（或其它编码 Agent）在动手之前先决定：**当前真相是什么、要读什么、不该读什么、该套用哪些规则**。
 
-- 当前事实源是什么
-- 任务属于哪个责任范围
-- 当前项目处于 `normal`、`bootstrap` 还是 `patch` 模式
-- 现在应该读取哪些文档
-- 哪些文档在没有明确需要时不应进入上下文
-- 在任务定界之后应应用哪些编码规则
+---
 
-## 为什么需要这个技能
+## 这个 skill 做什么
 
-大多数 AI coding 工作流会在两个地方出问题：
+被触发时，它会引导 Agent：
 
-1. **读得太多。**
-   旧计划、归档说明、过时过程记录混进上下文，导致脏读。
+1. 判断项目处于 `bootstrap`、`patch` 还是 `normal` 模式
+2. 识别最窄的责任范围（某个工作单元、`pm`、或 `cross-area`）
+3. 只读取该范围所需的最小活跃事实集
+4. 不让归档、旧计划、过程日志泄漏进上下文
+5. 按层加载编码规则 — overrides 先行，再按任务路由到具体 reference
 
-2. **过早施加编码约束。**
-   Agent 在还没搞清楚当前负责的是项目哪一块之前，就开始强加风格、抽象、注释或结构规则。
+它有明确立场：**当前真相小、归档默认不读、责任路由优于全仓扫描、编码规则延后加载**。
 
-这个技能通过把流程拆成两层来解决这个问题：
+---
 
-1. **Project-state layer（项目状态层）**
-   - 识别当前责任范围
-   - 判断哪里是当前真相
-   - 把默认读取限制在最小必要 active 集
-   - 仅在需要时初始化或补齐协作文档
+## 为什么需要它
 
-2. **Coding-constraints layer（编码约束层）**
-   - 从 `references/` 中按需加载实现规则
-   - 在任务定界后应用受 Code Complete 2 启发的规则
-   - 通过 modern override 层压制过重、过时、过度仪式化的默认行为
+大多数 AI coding 工作流在两个地方失败：
 
-## 核心理念
+1. **读得太多** — 旧计划、归档、过程记录混进上下文，造成脏读
+2. **过早施加约束** — Agent 还没搞清楚自己负责哪一块时，就开始套风格、套抽象、套结构
 
-### 1. Active facts first
-默认只让最小的当前事实集进入上下文。
+这个 skill 把流程拆成两层，**先路由，再规则**。
 
-### 2. CLAUDE.md before routing
-如果项目根目录存在 `CLAUDE.md`，Claude 应先读取它，并把它作为协作入口契约。
+---
 
-### 3. Archive is opt-in
-归档的计划、过程记录和旧设计，不是当前执行依据。
+## 两层架构
 
-### 4. Patch, don't rebuild
-如果协作文档不完整，只补缺失项，不整体重建。
+### 1. 项目状态层
+- 识别当前责任范围
+- 判断当前真相
+- 把默认读取限制在最小必要 active 集
+- 仅在需要时初始化或补齐协作文档
+- 强制执行 veto-first 决策、禁止事项粒度、脏读防护
 
-### 5. Responsibility-aware reading
-技能会把任务路由到最窄、最合适的责任范围：
+主入口：`references/project-state.md`
 
-- 工作单元（`<unit-name>`）
-- `pm`
-- `cross-area`
+### 2. 代码约束层
+- 从 `references/` 按需加载具体规则
+- 始终先加载 `references/overrides.md` 和 `references/warning-signs.md`
+- 应用受 Code Complete 2 启发并经现代化的规则
+- 按任务类型（命名、设计、防御、调试等）路由到对应文件
 
-### 6. Modern default behavior overrides
-技能会保留安全性和正确性规则，但压制以下这类沉重的历史默认：
+路由表在 `SKILL.md` 里。
 
-- 强制大量注释的工作流
-- 默认加文件头仪式
-- 不必要的抽象脚手架
-- 对已可信内部流重复做防御性校验
-- 只会增加噪音、却不提升正确性的历史过程仪式
+---
 
-## 项目状态
+## 来自 OpenAI Harness Engineering 的实践
 
-每次调用都先把项目归类到以下三种状态之一：
+这个 skill 吸收了 OpenAI [Harness Engineering: leveraging Codex in an agent-first world](https://openai.com/zh-Hans-CN/index/harness-engineering/) 里的若干做法：
 
-### `normal`
-当仓库已经具备 active 协作结构时使用。
+| 实践 | 落点 |
+|---|---|
+| AGENTS.md 当目录用，约 100 行 | `SKILL.md`（≤ 150 行，纯路由 + 安全规则） |
+| 仓库即 system of record | 整套 `docs/` 结构 |
+| Doc-gardening Agent + 代码 GC | `references/gc-rules.md` |
+| 严格架构层级 + 自定义 lint | `references/architecture-layers.md` |
+| 计划即一流工件 | `docs/shared/exec-plans/{active,completed}/` |
+| 项目级黄金原则 | `references/gc-rules.md`（Golden Rules 段） |
+| Lint 错误信息 = 修复指令 | `references/architecture-layers.md` + `references/gc-rules.md` |
+| 顶层原则文件 | `docs/{DESIGN,FRONTEND,RELIABILITY,SECURITY,…}.md` |
+| `references/<lib>-llms.txt` 提供稳定外部上下文 | bootstrap 模板里的 `docs/references/` |
 
-### `bootstrap`
-当仓库实际上尚未初始化，需要最小协作文档结构时使用。
+---
 
-### `patch`
-当仓库已经有部分协作文档，但缺失必要的 active 文件或责任范围入口时使用。
-
-## 文档模型
-
-这个技能把项目文档分成三层：
-
-### Active
-当前真相。默认只应加载这一层。
-
-典型示例：
-- 当前范围
-- 当前优先级
-- 当前验收标准
-- 当前实现边界
-- 已锁定/禁止主动重构区域
-- 责任范围入口文件
-
-### Reference
-长期存在的设计资料。
-
-典型示例：
-- API 设计
-- 架构设计
-- 数据设计
-- UI/视觉设计
-- 模块设计
-
-### Archive
-历史材料。
-
-典型示例：
-- 旧计划
-- 已完成阶段记录
-- 已废弃约束
-- 历史 handoff 记录
-
-**规则：** 如果 active 与 reference 或 archive 冲突，以 active 为准。
-
-## 建议的协作文档结构
-
-在 bootstrap 模式下，这个技能期望最小共享文档结构大致如下：
-
-```text
-<project-root-directory>/
-├── CLAUDE.md
-├── docs/
-│   ├── .project-docs-manifest.yaml
-│   ├── navigation/
-│   │   └── 项目导航.md
-│   ├── shared/
-│   │   ├── README.md
-│   │   ├── current/
-│   │   │   ├── 当前阶段目标与范围.md
-│   │   │   ├── 当前任务优先级清单.md
-│   │   │   ├── 当前阻塞与待修复问题清单.md
-│   │   │   ├── 当前验收标准清单.md
-│   │   │   ├── 当前实现边界对照.md
-│   │   │   └── 当前锁定范围与禁止主动重构清单.md
-│   │   ├── contracts/
-│   │   ├── decisions/
-│   │   ├── milestones/
-│   │   └── archive/
-│   ├── units/
-│   │   ├── .template/
-│   │   └── <unit-name>/
-│   └── process/
-│       └── 000-项目初始化.md
-```
-
-文件名可以本地化或按项目习惯调整，但结构语义建议保持一致：
-
-- 一个根协作入口
-- 一个用于责任归属查询的 manifest
-- 一个小而明确的 active 层
-- 一个与当前执行显式隔离的 archive 层
-
-## 仓库结构
+## skill 仓库结构
 
 ```text
 project-state-code-router/
-├── SKILL.md
+├── SKILL.md                          # 地图（约 130 行）：两层、模式、
+│                                     # 安全规则、路由表
+├── README.md / README.zh-CN.md
+├── LICENSE
 └── references/
-    ├── bootstrap-templates.md
-    ├── comments.md
-    ├── control.md
-    ├── debugging.md
-    ├── defense.md
-    ├── design.md
-    ├── git-workflow.md
-    ├── layout.md
-    ├── naming.md
-    ├── performance.md
-    ├── process.md
-    ├── project-state.md
-    ├── quality.md
-    ├── refactoring.md
-    ├── templates.md
-    ├── warning-signs.md
-    └── writing.md
+    ├── overrides.md                  # 现代化覆盖层 — 始终先加载
+    ├── warning-signs.md              # 通用红旗 — 始终加载
+    ├── project-state.md              # 项目状态层完整规则
+    ├── bootstrap-templates.md        # 文档骨架、manifest、单元模板、
+    │                                 # 计划即工件、原则文件、llms.txt
+    ├── architecture-layers.md        # 分层架构 + 边界 lint
+    ├── gc-rules.md                   # 文档 / 代码 GC、黄金原则
+    ├── design.md                     # 类 / 模块 / 接口设计
+    ├── naming.md                     # 变量、函数、类型命名
+    ├── layout.md                     # 代码格式、注释
+    ├── control.md                    # 控制流、条件、循环
+    ├── defense.md                    # 输入校验、断言、错误
+    ├── debugging.md                  # 复现、二分、验证
+    ├── quality.md                    # 测试设计、可测性、评审
+    ├── performance.md                # 优化策略
+    ├── git-workflow.md               # 提交、分支、PR
+    ├── templates.md                  # 文件 / 函数模板
+    └── downstream-samples/
+        └── gc-lint.example.mjs       # 下游项目可复制的 doc-gardening
+                                      # 参考实现
 ```
 
-### 关键文件
+---
 
-- `SKILL.md`
-  - 主路由器和策略入口
-  - 定义项目状态、文档分层、责任路由、最小读取协议以及编码规则加载方式
+## 推荐的下游项目结构
 
-- `references/project-state.md`
-  - 协作文档治理规则
-  - 责任归属查询
-  - active/reference/archive 处理方式
-  - bootstrap/patch 安全约束
+bootstrap 时建议的目录：
 
-- `references/bootstrap-templates.md`
-  - 协作文档的最小内容模板与期望
+```text
+<project-root>/
+├── CLAUDE.md                         # 路由入口契约
+├── docs/
+│   ├── .project-docs-manifest.yaml   # 责任查询、active_core_files
+│   ├── DESIGN.md / FRONTEND.md / RELIABILITY.md / …  # 长期原则
+│   ├── GOLDEN_RULES.md               # 项目级机械规则
+│   ├── ARCHITECTURE.md               # 顶层层级图
+│   ├── navigation/
+│   ├── shared/
+│   │   ├── current/                  # 当前阶段事实（这一期在做什么）
+│   │   ├── contracts/
+│   │   ├── decisions/
+│   │   ├── milestones/
+│   │   ├── exec-plans/
+│   │   │   ├── active/               # 进行中的执行计划
+│   │   │   ├── completed/            # 历史决策，不删
+│   │   │   └── tech-debt-tracker.md
+│   │   ├── generated/                # 自动生成的契约（不要手改）
+│   │   └── archive/
+│   ├── units/                        # 工作单元（按责任范围）
+│   │   └── .template/
+│   ├── references/                   # 你依赖的库的 llms.txt
+│   └── process/
+└── <code-dirs>/
+```
 
-- `references/comments.md`、`references/writing.md`、`references/defense.md` 等
-  - 只有在任务范围明确后才加载的实现指导
+文件名可本地化（中文也行），结构语义比字面文件名更重要。
 
-## 如何使用这个技能
+---
 
-当 Claude 被要求执行以下工作时，可以使用这个技能：
+## 项目状态
 
-- 继续某个工作单元中的工作
-- 在已有项目中编写或修改代码
-- 为新仓库初始化协作文档
-- 为已有但结构不完整的仓库补齐协作文档
-- 在不被无关历史材料干扰的前提下进行 review、debug、refactor 或测试
+| 模式 | 进入条件 | 行为 |
+|---|---|---|
+| `bootstrap` | 无 `docs/`、无 manifest、无活动层 | 创建最小骨架，不预创建业务单元和条目 |
+| `patch` | 有 `docs/` 但 manifest / 活动层 / 单元入口缺失 | 只补缺失，不覆盖已有非空文件 |
+| `normal` | manifest、活动层、当前单元入口都存在 | 只读最小集，只在当前单元内做最小修改 |
+
+---
+
+## 文档模型
+
+文档分三层：
+
+- **Active**（当前真相）— 默认只加载这一层
+- **Reference**（长期设计资料）— 任务真的需要时才读
+- **Archive**（历史材料）— 默认不读；如需重新激活，新建活动条目，不直接改归档
+
+冲突时**以 active 为准**。
+
+---
+
+## 如何使用
+
+下面这些场景会触发该 skill：
+
+- 在某个工作单元内继续推进任务
+- 在已有项目里编写或修改代码
+- 给新仓库 bootstrap 协作文档
+- 给已有但残缺的协作文档做 patch
+- review、debug、refactor、写测试，且不想被无关历史拖累
+- 给项目装 doc-gardening 或代码 GC
+- 建立架构层级与边界强制
+
+skill 会根据 SKILL.md frontmatter 里的触发词自动激活。
 
 ### 推荐工作流
 
-1. 如果存在根目录 `CLAUDE.md`，先读它。
-2. 判断最窄的责任范围。
-3. 判断项目处于 `normal`、`bootstrap` 还是 `patch` 模式。
-4. 只读取当前范围所需的最小 active 文档集。
-5. 只有在任务明确需要历史追溯时才读取 archive。
-6. 只有在任务定界之后才从 `references/` 加载实现规则。
-7. 当通用历史规则与现代清晰性冲突时，应用 modern override 层。
+1. 如果存在根目录 `CLAUDE.md`，先读它
+2. 判断最窄责任范围
+3. 判断项目模式（`bootstrap` / `patch` / `normal`）
+4. 只读取当前范围所需的最小 active 文档集
+5. 仅在历史追溯真的需要时读 archive
+6. 任务定界后再从 `references/` 加载实现规则
+7. 永远先加载 `overrides.md` 和 `warning-signs.md`，让现代覆盖胜出
 
-## 责任路由示例
+---
 
-### 示例：工作单元任务
-只读取当前工作单元的 manifest.md 和 status.md，以及边界、验收标准和锁定区域。
+## 给下游项目装 GC
 
-### 示例：API 缺陷修复
-只读取相关工作单元的 manifest.md 和 status.md；接口/数据契约按需读取；只有在任务真实阻塞时才读取 blocker 列表。
+skill 仓库自身**不**给自己跑 GC（单人维护、改动稀少，性价比不够）。但它给下游项目准备了完整的 GC 方案：
 
-### 示例：PM 协调任务
-读取范围、优先级、验收标准和锁定决策，不带入所有工程细节。
+- **文档 GC** — `docs/` 结构不变式，对过期 status / 已解决 blocker / 归档误引用的语义巡检
+- **代码 GC** — 架构层级偏离、命名约定漂移、文件大小、被禁依赖、黄金原则违规
+- **参考实现** — `references/downstream-samples/gc-lint.example.mjs`（Node.js 零依赖，可直接复制改路径）
 
-### 示例：跨单元联调问题
-只读取直接相关的工作单元入口、共享阻塞，以及任务特定契约。
+完整方案见 `references/gc-rules.md`。
 
-## 本技能的注释哲学
-
-这个技能包含一套详细的注释规则，但默认行为已经被有意现代化。
-
-实际默认值更接近：
-
-- 优先写自说明代码
-- 注释意图和约束，而不是显而易见的执行细节
-- 不要用注释弥补代码本身的不清晰
-- 不默认添加文件头或作者块仪式
-- 仅在非显然行为、不变量、workaround、边界假设等场景保留注释
-
-## 适用对象
-
-如果你希望 Claude 在以下仓库中更稳定地工作，这个技能会特别有用：
-
-- 存在多个工作单元
-- 既有当前活跃工作，又有大量历史文档
-- 在项目根目录维护共享协作文档
-- 需要防止 AI 脏读和意外回滚到旧设计
-- 希望有编码规范，但不想强制采用沉重的历史仪式
+---
 
 ## 可定制项
 
-你大概率会想按项目实际情况调整：
+你大概率会想调整：
 
-- 责任范围名称
-- 协作文档文件名
-- active-core 文件列表
-- 工作单元的分类方式
-- 语言特定的 reference 规则
-- 注释与文档规范期望
+- 责任范围名称、工作单元分类
+- 协作文档文件名（英文 / 中文 / 团队习惯）
+- manifest 的 `active_core_files` 列表
+- 保留哪些顶层原则文件
+- `architecture-layers.md` 里的层级模型
+- 项目自己的黄金原则
 
-最适合定制的地方包括：
+最适合定制的位置：
 
-- 根目录 `CLAUDE.md`：定义路由契约
-- `docs/.project-docs-manifest.yaml`：定义责任归属查询
-- `references/`：定义编码指导
-- `SKILL.md` 中的 modern override 段落：调整默认行为
+- 根目录 `CLAUDE.md` — 路由契约
+- `docs/.project-docs-manifest.yaml` — 责任查询
+- `docs/GOLDEN_RULES.md` — 项目级机械规则
+- `docs/ARCHITECTURE.md` — 你的层级模型
+- `references/overrides.md` — 当某条 CC2 默认与你团队现代实践冲突时
 
-## 给开源使用者的说明
+---
 
-这个技能是有明确立场的。
+## 适合谁
 
-它默认认为：
+如果你的项目有以下特征，这个 skill 会特别有用：
 
-- 当前真相应该小而明确
-- 归档材料不应悄悄主导当前实现
-- 责任路由优于全仓扫描
-- 编码规则应该延后加载，而不是提前强加
-- 现代清晰性应优先于流程仪式，除非安全性或正确性要求例外
+- 多个工作单元或多个团队
+- 既有当前活跃工作，又有大量历史文档
+- 在项目根目录维护共享协作文档
+- 需要防止 AI 脏读、防止意外回滚到旧设计
+- 想要编码规范，但不想强制采用沉重的历史仪式
+- 同时让多个 Agent（Claude / Codex / 其它）读同一个仓库
 
-如果你的项目偏好“默认全量文档”“单体过程记录”或“在定界前就全局执行风格约束”，那这个技能会显得刻意克制。
+如果你的项目偏好"默认全量文档"、"单体过程记录"、"在定界前就全局执行风格约束"，那这个 skill 会显得刻意克制。
+
+---
 
 ## 致谢与归属
 
 由 `DingYiXing` 创建与整理。
 
-其中部分编码指导受 *Code Complete 2* 启发，并通过 modern default-behavior override 层进行再筛选，以减少仪式感和陈旧流程对当前实现的拖拽。
+编码指导部分来自 *Code Complete 2*，并通过现代覆盖层做了重新筛选，以减少仪式感和过时流程对当前实现的拖拽。
+
+Harness 工程实践（AGENTS.md 即地图、doc-gardening、代码 GC、架构层级、计划即工件、lint 错误即修复指令）来自 OpenAI 的 [Harness Engineering: leveraging Codex in an agent-first world](https://openai.com/zh-Hans-CN/index/harness-engineering/)。

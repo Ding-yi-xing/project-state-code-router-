@@ -3,8 +3,8 @@
 **Scope:** Input validation, error handling, assertions, exception strategy, security boundaries.
 **Core:** input validation, error detection, assertion usage — always apply.
 **Extended:** error propagation style, recovery strategies, debugging aids.
-**Often used with:** writing.md, debugging.md.
-**Read Next If:** writing public functions → writing.md; investigating a crash → debugging.md; designing error-handling strategy → design.md.
+**Often used with:** warning-signs.md, debugging.md.
+**Read Next If:** writing public functions → design.md; investigating a crash → debugging.md; designing error-handling strategy → design.md.
 
 ## Input Validation
 

@@ -3,8 +3,8 @@
 **Scope:** Variable, function, class, type, and constant naming conventions.
 **Core:** identifier clarity — names must accurately describe what they represent.
 **Extended:** naming conventions, prefixes, length guidelines.
-**Often used with:** writing.md, design.md.
-**Read Next If:** defining types/classes → design.md; setting project naming conventions → writing.md.
+**Often used with:** layout.md, design.md.
+**Read Next If:** defining types/classes → design.md; project naming conventions in architecture context → architecture-layers.md.
 
 - [核心][必须] 变量名要完全、准确地描述出该变量所代表的事物 | anchor=CC2.CH11.S01
 - [核心][禁止] 使用x、x1、x2等无意义名字作为变量名（传统上用x代表一个未知量；如果不希望变量代表的是未知量，请考虑取更好的名字。即使知道x代表什么，也无法获知x1和x2之间的关系）| anchor=CC2.CH11.S01

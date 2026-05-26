@@ -5,8 +5,8 @@ author=DingYiXing
 **Scope:** Project-state routing, active/reference/archive layering, bootstrap/patch behavior, collaboration docs, and dirty-read prevention.
 **Core:** minimal current truth, conflict resolution, non-destructive initialization — always apply.
 **Extended:** archive retrieval, responsibility-area loading, template guidance.
-**Often used with:** process.md, warning-signs.md.
-**Read Next If:** bootstrapping docs → bootstrap-templates.md; writing code after routing → writing.md and task-specific references.
+**Often used with:** git-workflow.md, warning-signs.md.
+**Read Next If:** bootstrapping docs → bootstrap-templates.md; writing code after routing → naming.md / design.md / defense.md and other task-specific references.
 
 ## Project-state governance
 
@@ -98,3 +98,68 @@ author=DingYiXing
 - [扩展][必须] 当前实现已完成且样式锁定，而旧设计文档仍显示旧样式时，以当前锁定实现为准；若文档过期，更新 active 层，不重构页面。
 - [扩展][必须] 某模块已按新接口落地，而过程记录仍保留旧字段命名时，以 active 层 API 当前事实源为准，过程记录仅作背景。
 - [扩展][必须] 若新任务明确是"回看一期为什么这么设计"，再读取归档或过程记录；若任务只是"继续实现某个工作单元"，不要读取这些材料。
+
+## Work-unit file responsibilities
+
+每个工作单元至少应有：`README.md` `manifest.md` `status.md` `requirements/index.md` `blockers/index.md` `issues/index.md` `sync/outward-needs.md` `archive/index.md`。
+
+- [核心][必须] `manifest.md` 是 Claude 的单元路由文件，至少包含：单元名称、负责范围、不负责范围、路由线索、默认读取顺序。
+- [核心][必须] `status.md` 只保留当前最重要事实（当前目标、当前待完成、当前阻塞、待修复问题、最近完成、下一步），不堆历史。
+- [核心][必须] `sync/outward-needs.md` 是当前单元对外提出协同请求的唯一默认出口；跨单元写入优先走这里或共享层，不直接改对方内部文档。
+- [扩展][必须] `requirements/`、`blockers/`、`issues/` 下的 `index.md` 只放摘要清单（标题、编号、状态、简短说明），复杂事项落到独立条目文件。
+- [扩展][必须] checklist (`[ ]` / `[x]`) 只能作为摘要层，不能作为唯一事实来源；详情见独立条目文件。
+- [扩展][必须] 归档是已完成快照；重新激活历史事项时，新建活动条目并引用原归档来源，状态标记为 `reopened`，不直接修改原归档文件。
+
+## Default editing policy
+
+- [核心][必须] 默认只编辑当前工作单元内的文档；只有任务明确涉及共享事实时，才更新 `shared/current/`。
+- [核心][必须] 跨单元协作时，优先写入当前单元的 `sync/outward-needs.md` 或共享层的跨单元阻塞 / 协同信息；不直接改对方单元的内部状态、需求、阻塞、问题文档。
+- [核心][必须] 在已有文件里优先做区块级、字段级、追加式更新；避免全文改写、全文重排、顺手统一格式造成大 diff、把多个事项揉成一次大更新。
+- [扩展][禁止] 不要为了"整洁"重写已有非空文档。
+
+## Veto-first decision principle
+
+做任何"是否批准 / 是否纳入 / 是否执行"的决策时，必须先读取否决条件，再评估触发条件。
+
+- [核心][必须] 先读锁定范围文档：`当前锁定范围与禁止主动重构清单.md` + `当前阶段目标与范围.md` 中的"明确不在范围内"段落。
+- [核心][必须] 将禁止事项列为否决条件 — 任何匹配禁止事项的请求自动否决；否决后不进入评估，不需要再分析利弊、可行性、技术方案。
+- [核心][必须] 只有未被否决的请求才进入下一步：评估优先级、资源、影响范围。
+- [核心][必须] PM 做范围决策时必须在输出中显式列出：读了哪些否决条件文档、本次请求中有哪些被否决（如有）、否决依据是哪个文档的哪条规则。
+- [核心][必须] 如果一个请求看起来"很合理"但触及当前范围的禁止事项，必须先经正常流程更新范围文档，再批准请求；不得跳过范围文档直接批准。
+
+典型禁止事项（应出现在锁定范围文档中）：不在当前阶段范围内的功能扩展；已锁定的接口 / 模型变更；未经 cross-area 评估的共享模型修改；单人决策的跨单元契约变更。
+
+## Prohibition granularity principle
+
+- [核心][必须] 禁止事项必须使用具体名称，禁止使用分类概括 — 模型会对"看起来合理的功能"产生合理化偏见，绕过模糊条款。
+- [核心][必须] 每条禁止事项必须至少包含一个具体的字段名、接口路径、文件名或包名；如果某条无法举出具体名称，说明它还不够清晰，需要细化。
+- [核心][必须] bootstrap 和 patch 模式下创建的范围模板，应包含具体名称的占位符，不应预填分类概括。
+
+错误写法（分类概括 — 模型会自己找理由 bypass）：
+- "禁止新增排序 / 筛选功能"
+- "禁止扩展数据模型"
+- "不在范围内的功能暂时不做"
+
+正确写法（具体点名 — 模型无法 bypass）：
+- "禁止修改 Task 接口已有字段（id, title, status, assignee, createdAt, updatedAt）"
+- "禁止新增 Task 接口字段，包括但不限于：priority, dueDate, tags, labels, category, order"
+- "禁止新增 GET /tasks 的查询参数（如 ?sort, ?filter, ?page）"
+- "禁止引入新的 npm 依赖（如 react-query, zustand, dayjs）"
+
+## Output requirements when initializing or updating docs
+
+- [核心][必须] 初始化或补齐结构时，输出包含：当前判断的模式（bootstrap / patch / normal）、识别到的工作单元范围、实际创建或补齐了哪些文件、哪些文件因已存在且非空被保留未覆盖、哪些业务事实需要用户后续补充。
+- [核心][必须] 更新现有文档时，输出包含：读取了哪些最小入口文件、为什么本次只改这些文件、是否涉及共享层或跨单元信息、是否明确避开了归档或其他单元内部文档。
+
+## Things never to do
+
+- [核心][禁止] 不要预设固定的 frontend / backend / mobile 目录。
+- [核心][禁止] 不要默认创建所有可能的工作单元。
+- [核心][禁止] 不要在初始化时生成大量长文档。
+- [核心][禁止] 不要把 process 日志当成当前事实主入口。
+- [核心][禁止] 不要把归档直接拿来继续编辑。
+- [核心][禁止] 不要因为看到旧设计就回滚当前实现。
+- [核心][禁止] 不要为了"整洁"而重写已有非空文档。
+- [核心][禁止] 不要在不确定责任边界时扫描整个 docs 树。
+- [核心][禁止] 不要把 checklist 当成唯一事实来源。
+- [核心][禁止] 不要直接修改其他工作单元的内部管理文档。

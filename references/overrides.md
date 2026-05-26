@@ -2,6 +2,8 @@
 
 **Scope:** Rules from the Code Complete 2 reference files that are downgraded or replaced by modern defaults.
 **Load:** Always read `[核心]` overrides before applying rules from any other reference file. When an override conflicts with a rule in another reference file, the override wins.
+**Often used with:** every other reference file (overrides apply universally).
+**Read Next If:** the override `narrows` or `disables` a rule → read the original rule in the linked file to understand the unmodified version; the override `replaces` a CC2 chapter → read the modern equivalent named in the replacement column.
 
 ## Override precedence
 
@@ -19,8 +21,8 @@ When a rule is listed here with `action: downgrade` or `action: replace`, the re
 
 | Original | Reference | Action | Modern replacement |
 |----------|-----------|--------|--------------------|
-| `[扩展][必须]` Comment liberally on design decisions, file headers, and routine mechanics | comments.md §Design Documentation | **downgrade** to `[扩展][可选]` | Prefer self-documenting code. Comment intent and constraints, not obvious mechanics. File headers are unnecessary — use `git blame`. |
-| `[扩展][必须]` Use UDF/SDF folders to record design decision trails | comments.md line 11 | **replace** | The project-state layer's `docs/units/<unit>/` structure is the modern UDF/SDF. Use `status.md`, `requirements/`, `blockers/`, and `issues/` instead of paper-trail folders. |
+| `[扩展][必须]` Comment liberally on design decisions, file headers, and routine mechanics | (legacy CC2 Ch32) — file removed, see modern_default | **downgrade** to `[扩展][可选]` | Prefer self-documenting code. Comment intent and constraints, not obvious mechanics. File headers are unnecessary — use `git blame`. |
+| `[扩展][必须]` Use UDF/SDF folders to record design decision trails | (legacy CC2 Ch32) — file removed | **replace** | The project-state layer's `docs/units/<unit>/` structure is the modern UDF/SDF. Use `status.md`, `requirements/`, `blockers/`, and `issues/` instead of paper-trail folders. |
 
 ### Naming conventions
 
@@ -33,8 +35,8 @@ When a rule is listed here with `action: downgrade` or `action: replace`, the re
 
 | Original | Reference | Action | Modern replacement |
 |----------|-----------|--------|--------------------|
-| `[扩展][必须]` Full class design before coding (PPP) | writing.md §Pseudocode Programming Process | **downgrade** to `[扩展][可选]` | For routine classes, design the interface contract and write the implementation iteratively. Full PPP is reserved for complex algorithms with non-obvious logic. |
-| `[扩展][必须]` Create inline subroutines for even trivially simple operations | writing.md line 14 | **downgrade** to `[扩展][可选]` | Extract only when the extraction reduces duplication or clarifies intent. A 2-line helper used once is noise. |
+| `[扩展][必须]` Full class design before coding (PPP) | (legacy CC2 Ch9 Pseudocode Programming Process) — file removed | **downgrade** to `[扩展][可选]` | For routine classes, design the interface contract and write the implementation iteratively. Full PPP is reserved for complex algorithms with non-obvious logic. |
+| `[扩展][必须]` Create inline subroutines for even trivially simple operations | (legacy CC2 Ch9) — file removed | **downgrade** to `[扩展][可选]` | Extract only when the extraction reduces duplication or clarifies intent. A 2-line helper used once is noise. |
 
 ### Defensive programming
 
@@ -47,16 +49,16 @@ When a rule is listed here with `action: downgrade` or `action: replace`, the re
 
 | Original | Reference | Action | Modern replacement |
 |----------|-----------|--------|--------------------|
-| `[扩展][必须]` Formal change control board for requirements | process.md §Requirements | **downgrade** to `[扩展][可选]` | For small-medium projects: use PR reviews and issue tracking. Formal CCB is for life-critical or regulated systems. |
-| `[扩展][必须]` 80% requirements detailed upfront | process.md §Requirements | **downgrade** to `[扩展][可选]` | For modern iterative projects: detail only the current sprint/milestone. Keep a lightweight backlog for the rest. |
+| `[扩展][必须]` Formal change control board for requirements | (legacy CC2 Ch3 Requirements) — file removed, see project-state.md | **downgrade** to `[扩展][可选]` | For small-medium projects: use PR reviews and issue tracking. Formal CCB is for life-critical or regulated systems. |
+| `[扩展][必须]` 80% requirements detailed upfront | (legacy CC2 Ch3 Requirements) — file removed, see project-state.md | **downgrade** to `[扩展][可选]` | For modern iterative projects: detail only the current sprint/milestone. Keep a lightweight backlog for the rest. |
 
 ### Legacy language features
 
 | Original | Reference | Action | Modern replacement |
 |----------|-----------|--------|--------------------|
-| `[扩展][必须]` Rules about macros, inline, `#define` | writing.md §Macros | **disable** for languages without a preprocessor | These rules apply only to C/C++. Skip entirely for Python, TypeScript, Go, Rust, Java, etc. |
-| `[扩展][禁止]` Freeing pointers without nulling | warning-signs.md line 18 | **disable** for GC languages | Not applicable to garbage-collected or ownership-managed languages. |
-| `[扩展][必须]` Isolate non-portable code in subroutines | writing.md line 17 | **keep** as `[核心]` | This rule ages well. Still applies: isolate platform-specific code. |
+| `[扩展][必须]` Rules about macros, inline, `#define` | (legacy CC2 Ch9 Macros) — file removed | **disable** for languages without a preprocessor | These rules apply only to C/C++. Skip entirely for Python, TypeScript, Go, Rust, Java, etc. |
+| `[扩展][禁止]` Freeing pointers without nulling | warning-signs.md (rewritten — modern red-flag list) | **disable** for GC languages | Not applicable to garbage-collected or ownership-managed languages. |
+| `[扩展][必须]` Isolate non-portable code in subroutines | architecture-layers.md ARCH.M.06 (migrated from legacy CC2 Ch18) | **keep** as `[核心]` | This rule ages well. Still applies: isolate platform-specific code. See ARCH.M.06 for the active rule text. |
 
 ---
 

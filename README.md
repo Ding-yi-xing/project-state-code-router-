@@ -1,294 +1,243 @@
 # project-state-code-router
 
-A Claude Code skill for **routing coding work through the current project state first**, then applying implementation constraints with a **minimal-reading, low-staleness workflow**.
+A Claude Code skill that fuses **project-state collaboration routing** with **Code Complete 2 coding constraints**, modernized through an override layer and **OpenAI Harness-Engineering–style** entry/GC discipline.
 
-This skill is designed for repositories where AI coding should not blindly scan everything, trust old plans, or overfit to broad style rules. It helps Claude decide:
+It helps Claude (or any other coding agent) decide **what is current truth, what to read, what to skip, and what rules apply** before writing a single line of code.
 
-- what the current source of truth is
-- which responsibility area the task belongs to
-- whether the project is in `normal`, `bootstrap`, or `patch` mode
-- which documents should be read now
-- which documents should stay out of context unless explicitly needed
-- which coding rules should apply after the task is scoped correctly
+---
+
+## What this skill does
+
+When invoked, it makes the agent:
+
+1. Detect whether the project is in `bootstrap`, `patch`, or `normal` mode
+2. Identify the narrowest responsibility area (a work unit, `pm`, or `cross-area`)
+3. Read only the smallest active fact set required for that scope
+4. Avoid leaking archive, old plans, or process logs into context
+5. Apply layered coding rules — modern overrides first, then domain-specific references
+
+It is opinionated: current truth is small, archive is opt-in, responsibility-aware reading beats whole-repo scanning, and coding rules load **late**, not early.
+
+---
 
 ## Why this exists
 
-Most AI coding workflows fail in one of two ways:
+Most AI coding workflows fail in two ways:
 
-1. **They read too much.**
-   Old plans, archive notes, and stale process logs leak into the context and cause dirty reads.
+1. **They read too much.** Old plans, archive notes, and stale process logs leak into context and cause dirty reads.
+2. **They apply coding guidance too early.** The agent enforces style and abstraction before knowing which part of the project it is responsible for.
 
-2. **They apply coding guidance too early.**
-   The agent starts enforcing style, abstraction, comments, or structure before it knows which part of the project it is actually responsible for.
+This skill splits the workflow into two layers and routes through state first, rules second.
 
-This skill fixes that by splitting the workflow into two layers:
+---
 
-1. **Project-state layer**
-   - identifies the current responsibility area
-   - decides what is current truth
-   - restricts default reading to the smallest useful active set
-   - bootstraps or patches collaboration docs only when needed
+## The two layers
 
-2. **Coding-constraints layer**
-   - loads targeted implementation rules from `references/`
-   - applies Code Complete 2–inspired constraints after the task is scoped
-   - uses a modern override layer to suppress overly ceremonial or outdated defaults
+### 1. Project-state layer
+- Identifies the current responsibility area
+- Decides what is current truth
+- Restricts default reading to the smallest useful active set
+- Bootstraps or patches collaboration docs only when needed
+- Enforces veto-first decisions, prohibition granularity, and dirty-read prevention
 
-## Core ideas
+Main reference: `references/project-state.md`
 
-### 1. Active facts first
-Only the smallest current fact set should enter context by default.
+### 2. Coding-constraints layer
+- Loads targeted implementation rules from `references/`
+- Always loads `references/overrides.md` and `references/warning-signs.md` first
+- Applies Code Complete 2–inspired constraints, modernized via overrides
+- Routes to specific files based on the task (naming, design, defense, debugging, etc.)
 
-### 2. CLAUDE.md before routing
-If a root-level `CLAUDE.md` exists, Claude should read it first and use it as the collaboration entry contract.
+Routing table lives in `SKILL.md`.
 
-### 3. Archive is opt-in
-Archived plans, process notes, and old designs are not current execution guides.
+---
 
-### 4. Patch, don't rebuild
-If collaboration docs are incomplete, create only what is missing.
+## Influences from OpenAI's Harness Engineering post
 
-### 5. Responsibility-aware reading
-The skill routes tasks into the narrowest responsibility area that fits:
+This skill incorporates several practices from OpenAI's [Harness Engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/):
 
-- work unit (`<unit-name>`)
-- `pm`
-- `cross-area`
+| Practice | Where in this skill |
+|---|---|
+| AGENTS.md as a ~100-line map, not encyclopedia | `SKILL.md` (≤ 150 lines, pure routing + safety rules) |
+| Repo as system of record | The whole `docs/` structure described below |
+| Doc-gardening agent + code-rot GC | `references/gc-rules.md` |
+| Strict architecture layers + custom lint | `references/architecture-layers.md` |
+| Plans as first-class artifacts | `docs/shared/exec-plans/{active,completed}/` |
+| Project-level Golden Rules | `references/gc-rules.md` (Golden Rules section) |
+| Lint error message = fix instruction | `references/architecture-layers.md` + `references/gc-rules.md` |
+| Top-level principle files | `docs/{DESIGN,FRONTEND,RELIABILITY,SECURITY,…}.md` |
+| `references/<lib>-llms.txt` for stable external context | `docs/references/` in the bootstrap template |
 
-### 6. Modern default behavior overrides
-The skill preserves safety and correctness rules, but suppresses heavy legacy defaults such as:
-
-- mandatory comment-heavy workflows
-- file header ceremony by default
-- unnecessary abstraction scaffolding
-- defensive validation on already-trusted internal flows
-- historical process rituals that add noise without improving correctness
-
-## Project states
-
-Every invocation begins by classifying the project into one of three states:
-
-### `normal`
-Use when the repository already has an active collaboration structure.
-
-### `bootstrap`
-Use when the repository is effectively uninitialized and needs a minimal collaboration docs structure.
-
-### `patch`
-Use when the repository has some collaboration docs, but required active files or responsibility-area entry points are missing.
-
-## Document model
-
-The skill organizes project documents into three layers:
-
-### Active
-Current truth. These are the only documents that should be loaded by default.
-
-Typical examples:
-- current scope
-- current priorities
-- current acceptance criteria
-- current implementation boundaries
-- locked/no-redesign zones
-- responsibility-area entry files
-
-### Reference
-Long-lived design material.
-
-Typical examples:
-- API design
-- architecture design
-- data design
-- UI/visual design
-- module design
-
-### Archive
-Historical material.
-
-Typical examples:
-- old plans
-- completed phase notes
-- deprecated constraints
-- old handoff records
-
-**Rule:** if active facts conflict with reference or archive, active facts win.
-
-## Suggested collaboration docs structure
-
-When bootstrapping, the skill expects a minimal shared documentation layout like this:
-
-```text
-<project-root-directory>/
-├── CLAUDE.md
-├── docs/
-│   ├── .project-docs-manifest.yaml
-│   ├── navigation/
-│   │   └── 项目导航.md
-│   ├── shared/
-│   │   ├── README.md
-│   │   ├── current/
-│   │   │   ├── 当前阶段目标与范围.md
-│   │   │   ├── 当前任务优先级清单.md
-│   │   │   ├── 当前阻塞与待修复问题清单.md
-│   │   │   ├── 当前验收标准清单.md
-│   │   │   ├── 当前实现边界对照.md
-│   │   │   └── 当前锁定范围与禁止主动重构清单.md
-│   │   ├── contracts/
-│   │   ├── decisions/
-│   │   ├── milestones/
-│   │   └── archive/
-│   ├── units/
-│   │   ├── .template/
-│   │   └── <unit-name>/
-│   └── process/
-│       └── 000-项目初始化.md
-```
-
-The file names can be localized or adapted, but the structure should preserve the same semantics:
-
-- one root collaboration entry
-- one manifest for responsibility lookup
-- a small active layer for current truth
-- explicit archive separation
+---
 
 ## Repository structure
 
 ```text
 project-state-code-router/
-├── SKILL.md
+├── SKILL.md                          # Map (~130 lines): two layers, modes,
+│                                     # safety rules, routing table
+├── README.md / README.zh-CN.md
+├── LICENSE
 └── references/
-    ├── bootstrap-templates.md
-    ├── comments.md
-    ├── control.md
-    ├── debugging.md
-    ├── defense.md
-    ├── design.md
-    ├── git-workflow.md
-    ├── layout.md
-    ├── naming.md
-    ├── performance.md
-    ├── process.md
-    ├── project-state.md
-    ├── quality.md
-    ├── refactoring.md
-    ├── overrides.md
-    ├── templates.md
-    ├── warning-signs.md
-    └── writing.md
+    ├── overrides.md                  # Modern default overrides — always loaded first
+    ├── warning-signs.md              # Cross-cutting red flags — always loaded
+    ├── project-state.md              # Project-state layer rules (full version)
+    ├── bootstrap-templates.md        # Doc skeleton, manifest, unit templates,
+    │                                 # plans-as-artifacts, principle files, llms.txt
+    ├── architecture-layers.md        # Layered architecture + boundary lint
+    ├── gc-rules.md                   # Doc-gardening + code GC, golden rules
+    ├── design.md                     # Class / module / interface design
+    ├── naming.md                     # Variable, function, type naming
+    ├── layout.md                     # Code formatting, comments
+    ├── control.md                    # Control flow, conditionals, loops
+    ├── defense.md                    # Input validation, assertions, errors
+    ├── debugging.md                  # Reproduce, isolate, verify
+    ├── quality.md                    # Test design, testability, review
+    ├── performance.md                # Optimization strategy
+    ├── git-workflow.md               # Commits, branches, PRs
+    ├── templates.md                  # File / function templates
+    └── downstream-samples/
+        └── gc-lint.example.mjs       # Reference implementation for downstream
+                                      # doc-gardening (copy & adapt)
 ```
 
-### Key files
+---
 
-- `SKILL.md`
-  - main router and policy entry
-  - defines project states, document layers, routing, minimal reading, and coding rule loading
+## Suggested downstream project structure
 
-- `references/project-state.md`
-  - collaboration-doc governance
-  - responsibility lookup
-  - active/reference/archive handling
-  - bootstrap/patch safety
+When bootstrapping a project that uses this skill, the recommended layout is:
 
-- `references/overrides.md`
-  - modern default behavior overrides — downgrades or disables legacy CC2 rules that conflict with modern practice
-  - loaded before all other reference files; overrides always win
+```text
+<project-root>/
+├── CLAUDE.md                         # Routing entry contract
+├── docs/
+│   ├── .project-docs-manifest.yaml   # Responsibility lookup, active_core_files
+│   ├── DESIGN.md / FRONTEND.md / RELIABILITY.md / …  # Long-term principles
+│   ├── GOLDEN_RULES.md               # Project-level mechanical rules
+│   ├── ARCHITECTURE.md               # Top-level layer map
+│   ├── navigation/
+│   ├── shared/
+│   │   ├── current/                  # Active facts (what we're doing now)
+│   │   ├── contracts/
+│   │   ├── decisions/
+│   │   ├── milestones/
+│   │   ├── exec-plans/
+│   │   │   ├── active/               # In-flight execution plans
+│   │   │   ├── completed/            # Historical decisions, never deleted
+│   │   │   └── tech-debt-tracker.md
+│   │   ├── generated/                # Auto-generated contracts (don't hand-edit)
+│   │   └── archive/
+│   ├── units/                        # Work units (per responsibility area)
+│   │   └── .template/
+│   ├── references/                   # llms.txt for libraries you depend on
+│   └── process/
+└── <code-dirs>/
+```
 
-- `references/bootstrap-templates.md`
-  - minimal content expectations for collaboration docs
+Names can be localized (Chinese names work too); structure semantics matter, not the literal filenames.
 
-- `references/comments.md`, `references/writing.md`, `references/defense.md`, etc.
-  - implementation guidance loaded only after task scope is clear
+---
 
-## How to use this skill
+## Project states
+
+| Mode | When | Behavior |
+|---|---|---|
+| `bootstrap` | No `docs/`, no manifest, no active layer | Create minimal skeleton, do not invent business units or items |
+| `patch` | `docs/` exists but manifest / active layer / unit entry is missing | Fill only what's missing, never overwrite non-empty files |
+| `normal` | Manifest, active layer, current unit entry all present | Read smallest necessary set, edit only inside current unit |
+
+---
+
+## Document model
+
+Documents are split into three layers:
+
+- **Active** — current truth, the only layer loaded by default
+- **Reference** — long-lived design material, read only when the task needs it
+- **Archive** — historical, never default-loaded; reactivate as a new entry, do not edit in place
+
+If active conflicts with reference or archive, **active wins**.
+
+---
+
+## How to use
 
 Use this skill when Claude is asked to:
 
 - continue work in a specific work unit
 - write or modify code in an existing project
-- bootstrap collaboration docs for a new repository
-- patch missing collaboration docs in a partially structured repository
-- review, debug, refactor, or test code without dragging in irrelevant project history
+- bootstrap collaboration docs for a new repo
+- patch missing collaboration docs
+- review, debug, refactor, or test code without dragging in irrelevant history
+- install doc-gardening or code-GC on a project
+- establish architecture layers and boundary enforcement
 
-### Recommended workflow
+The skill activates automatically when its trigger keywords appear in your request (see SKILL.md frontmatter).
 
-1. Read root `CLAUDE.md` if it exists.
-2. Determine the narrowest responsibility area.
-3. Determine whether the project is in `normal`, `bootstrap`, or `patch` mode.
-4. Read only the minimum active-layer documents for that scope.
-5. Use archive only when the task explicitly needs historical traceability.
-6. Load implementation rules from `references/` only after the task is scoped.
-7. Apply the modern override layer when generic legacy guidance conflicts with clarity.
+### Recommended flow
 
-## Responsibility routing examples
+1. Read root `CLAUDE.md` if it exists
+2. Determine the narrowest responsibility area
+3. Determine the project mode (`bootstrap` / `patch` / `normal`)
+4. Read only the minimum active-layer documents for that scope
+5. Use archive only when historical traceability is genuinely required
+6. Load implementation rules from `references/` only after the task is scoped
+7. Always load `overrides.md` and `warning-signs.md` first; let modern overrides win
 
-### Example: work unit task
-Read only the current work unit's manifest.md and status.md, plus boundaries, acceptance criteria, and locked zones for that unit.
+---
 
-### Example: API bug fix
-Read only the relevant work unit's manifest.md and status.md, interface/data contract if needed, and blocker list only if the task is truly blocked.
+## Garbage collection for downstream projects
 
-### Example: PM coordination
-Read scope, priorities, acceptance, and lock decisions — not all engineering detail.
+The skill repo itself does **not** run GC on itself (single maintainer, low edit frequency). But it ships a complete GC playbook for downstream projects that use it:
 
-### Example: cross-unit integration issue
-Read only the directly involved work unit entries plus shared blockers and task-specific contracts.
+- **Doc-gardening** — invariants for `docs/` structure, semantic checks for stale status / blockers / archive references
+- **Code GC** — drift detection on architecture layers, naming conventions, file size, banned dependencies, golden-rule violations
+- **Reference implementation** — `references/downstream-samples/gc-lint.example.mjs` (Node.js, zero-dep) as a starting point
 
-## Comment philosophy in this skill
+See `references/gc-rules.md` for the full playbook.
 
-This skill includes a detailed comment ruleset, but its default behavior is intentionally modernized.
-
-In practice, the effective default is:
-
-- prefer self-documenting code
-- comment intent and constraints, not obvious mechanics
-- do not use comments to compensate for unclear code
-- do not add file-header or author-block ceremony by default
-- keep comments for non-obvious behavior, invariants, workarounds, and boundary assumptions
-
-## Who this is for
-
-This skill is especially useful if you want Claude to work well in repositories that have:
-
-- multiple work units
-- active work plus a lot of historical documentation
-- shared collaboration docs at the project root
-- a need to prevent AI dirty reads and accidental rollback to old designs
-- a desire for coding standards without forcing heavyweight legacy ceremony
+---
 
 ## Customization
 
-You will probably want to adapt:
+You'll likely want to adapt:
 
-- responsibility area names
-- collaboration docs file names
-- active-core file list
-- work unit taxonomy
-- project-language-specific references
-- comment and documentation expectations
+- responsibility area names and work-unit taxonomy
+- collaboration doc filenames (English / Chinese / your team's terms)
+- the active-core file list in the manifest
+- which top-level principle files to keep
+- the layer model in `architecture-layers.md`
+- your project's Golden Rules
 
-The best place to customize behavior is:
+The right places to customize:
 
-- root `CLAUDE.md` for routing contract
-- `docs/.project-docs-manifest.yaml` for responsibility lookup
-- `references/` files for coding guidance
-- the modern override section in `SKILL.md` for default behavior tuning
+- root `CLAUDE.md` — routing contract
+- `docs/.project-docs-manifest.yaml` — responsibility lookup
+- `docs/GOLDEN_RULES.md` — project-level mechanical rules
+- `docs/ARCHITECTURE.md` — your layer model
+- the override layer in `references/overrides.md` if a CC2 default conflicts with your modern practice
 
-## Notes for open-source users
+---
 
-This skill is opinionated.
+## Who this is for
 
-It assumes that:
+Especially useful when your project has:
 
-- current truth should be small and explicit
-- archived material should not silently steer implementation
-- responsibility routing is better than broad repository scanning
-- code guidance should be loaded late, not early
-- modern clarity should outrank ritual unless safety or correctness requires otherwise
+- multiple work units or teams
+- a mix of active work and substantial historical documentation
+- shared collaboration docs at the project root
+- a need to prevent AI dirty reads and accidental rollback to old designs
+- a desire for coding standards without forcing heavyweight legacy ceremony
+- multiple agents (Claude, Codex, others) reading the same repo
 
-If your project prefers exhaustive documentation-by-default, monolithic process logs, or global style enforcement before scoping, this skill may feel intentionally restrictive.
+If your project prefers exhaustive documentation-by-default, monolithic process logs, or global style enforcement before scoping, this skill will feel intentionally restrictive.
+
+---
 
 ## Attribution
 
 Created and curated by `DingYiXing`.
 
-Part of the coding guidance is distilled from principles inspired by *Code Complete 2*, then filtered through a modern default-behavior override layer to reduce ceremony and stale-process drag.
+Coding guidance distilled from *Code Complete 2*, then filtered through a modern override layer to reduce ceremony and stale-process drag.
+
+Harness-engineering practices (AGENTS.md as map, doc-gardening, code GC, architecture layers, plans as artifacts, lint-as-fix-instruction) adapted from OpenAI's [Harness Engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/).

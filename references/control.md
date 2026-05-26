@@ -3,8 +3,8 @@
 **Scope:** Straight-line code, conditionals, loops, control flow complexity.
 **Core:** loop correctness, boundary checks, boolean expression clarity — always apply.
 **Extended:** control flow style, table-driven methods, optimization.
-**Often used with:** writing.md, quality.md.
-**Read Next If:** writing conditionals/loops → writing.md; complex boolean expressions → naming.md.
+**Often used with:** layout.md, quality.md.
+**Read Next If:** writing conditionals/loops → layout.md; complex boolean expressions → naming.md.
 
 ## Straight-Line Code
 
