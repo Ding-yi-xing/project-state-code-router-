@@ -21,6 +21,22 @@ author=DingYiXing
 - [扩展][必须] 对已完成的事项，在 active 层保留简短结论，将详细过程、旧方案和历史推进记录下沉到 archive。
 - [扩展][禁止] 不要把历史过程记录、旧 handoff、旧设计讨论继续当作当前默认入口。
 
+## Current truth verification protocol
+
+- [核心][必须] 任务开始前若发现用户当前指令、代码行为、测试结果、active 文档互相冲突，必须先执行当前事实验证，不得直接按旧文档开工。
+- [核心][必须] 当前事实判断优先级：用户本轮明确指令 > 当前代码和测试行为 > active 层文档 > reference 层设计 > archive / process 历史。
+- [核心][必须] 若代码已通过测试且代表当前分支实现，而 active 文档仍描述旧行为，优先更新 active 文档；若代码明显未完成或测试失败，优先修代码并记录问题。
+- [核心][禁止] 不要用 archive、旧 process、旧 handoff 或旧计划推翻当前 active 层和当前代码；需要恢复历史时必须走 Archive reactivation protocol。
+- [扩展][必须] 当 `last_verified` 过旧、缺失或与当前代码不符时，更新对应 active 文档的 `last_verified` 或记录待验证问题。
+
+## Documentation-first planning principle
+
+- [核心][必须] 非平凡编码、架构、跨文件修改、跨单元协作、风险修复或计划推进前，先在对应权威文档中落下轻量计划或 active exec plan，再动代码。
+- [核心][必须] 计划至少包含：目标、范围、不做什么、步骤、验证方式、预计 docs 写回目标、中断恢复点。
+- [核心][必须] 1-3 步、单文件、无结构性风险的轻量任务可不落盘，但必须在输出中说明为何不需要持久计划。
+- [核心][必须] 多步骤计划应写入 `docs/shared/exec-plans/active/`；工作单元内部小计划可写入对应 `requirements/`、`issues/`、`blockers/` 条目，并在 `status.md` 只保留 PLAN/REQ/ISS/BLK 链接。
+- [扩展][禁止] 不要把完整计划只留在聊天里；聊天可用于讨论，repo docs 才是中断恢复事实源。
+
 ## Responsibility routing
 
 - [核心][必须] 每次任务先判断当前责任范围：单一工作单元、pm、cross-area，选择最窄的适用范围。
@@ -45,11 +61,47 @@ author=DingYiXing
 ## Shared execution views & blockers
 
 - [核心][必须] 项目级 `当前任务优先级清单.md` 是唯一主任务事实源，各工作单元不得各自维护脱离它的独立主清单。
-- [核心][必须] `docs/units/<unit>/status.md` 是工作单元的执行视图，用于承接本单元当前要做的子任务、当前阻塞和下一步动作。
-- [核心][必须] 联调失败、接口报错、环境差异、验收阻塞和待确认归属的问题，统一记录到 `当前阻塞与待修复问题清单.md`，而不是散落在聊天记录或过程记录中。
+- [核心][必须] `docs/units/<unit>/status.md` 是工作单元的执行视图和索引，用于承接本单元当前要做的子任务、当前阻塞和下一步动作，但不得替代 requirements / issues / blockers / sync / archive / process 的权威记录。
+- [核心][必须] 联调失败、接口报错、环境差异、验收阻塞和待确认归属的问题，统一记录到 `当前阻塞与待修复问题清单.md` 或对应工作单元 `blockers/`，而不是散落在聊天记录或过程记录中。
 - [核心][必须] 过程记录只用于保留推进经过和结论，不作为当前待修复事项的默认事实源。
 - [扩展][必须] 已解决的问题在 active 层保留简短结论；详细排查过程、旧日志和历史讨论下沉到 archive 或过程记录。
 - [扩展][禁止] 不要把多个工作单元的 status.md 和共享阻塞清单混写成一份长过程周报。
+
+## Write-back routing and state synchronization
+
+- [核心][必须] 每次推进项目工作后，必须判断本次产生了哪些事实变更，并同步到对应权威文档。
+- [核心][必须] `status.md` 只是当前工作单元 dashboard / index，不是需求、问题、阻塞、协同、过程、归档的唯一事实源。
+- [核心][禁止] 不要把长需求、长问题复现、长阻塞排查、跨单元协同、过程记录或历史结论堆进 `status.md`。
+- [核心][必须] 任何具有独立生命周期、负责人、状态、验收标准或历史价值的信息，都必须拆到对应目录的独立条目文件。
+- [核心][必须] `status.md` 中出现需求、问题、阻塞、协同、计划、归档事项时，应引用对应 REQ / ISS / BLK / SYNC / PLAN / ARC 编号或文件路径。
+- [核心][必须] 更新代码后若发现项目文档过期，优先更新对应权威文档，再让 `status.md` 指向它；不要只在 `status.md` 写一份新事实。
+
+### Documentation write-back matrix
+
+| Fact change | Authoritative destination | `status.md` role |
+|---|---|---|
+| New requirement or changed requirement | `docs/units/<unit>/requirements/` | Link REQ id only |
+| Bug, defect, failed acceptance, implementation mismatch | `docs/units/<unit>/issues/` | Link ISS id only |
+| Blocker, failed integration, environment issue, external dependency | `docs/units/<unit>/blockers/` or `docs/shared/current/当前阻塞与待修复问题清单.md` | Link BLK id only |
+| Cross-unit request or notification | `docs/units/<unit>/sync/outward-needs.md` | Mention waiting state only |
+| Project-level scope, priority, acceptance, lock change | `docs/shared/current/*.md` | Do not duplicate |
+| Completed or cancelled item | `docs/units/<unit>/archive/` and `archive/index.md` | Keep short ARC link |
+| Investigation narrative, failed attempt, handoff note | `docs/process/` or active exec-plan progress log | Do not paste narrative |
+| Active multi-step plan | `docs/shared/exec-plans/active/` | Link PLAN file only |
+| Long-term architecture or principle | `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/GOLDEN_RULES.md` | Do not duplicate |
+
+### Completion docs sync checklist
+
+Before finishing any project work, check:
+
+1. Did scope, priority, or acceptance criteria change? If yes, update `docs/shared/current/`.
+2. Did a new requirement appear or an existing requirement change? If yes, update `requirements/`.
+3. Did a bug, defect, failed acceptance, or mismatch appear? If yes, update `issues/`.
+4. Did an external dependency or blocker appear? If yes, update `blockers/` or the shared blocker list.
+5. Does another work unit need to know or act? If yes, update `sync/outward-needs.md`.
+6. Was work completed, cancelled, or superseded? If yes, update `archive/` and `archive/index.md`.
+7. Was there a meaningful investigation, decision, failed attempt, or handoff? If yes, update `docs/process/` or the active exec plan.
+8. If none apply, explicitly say no docs sync was needed beyond `status.md`, and why.
 
 ## Initialization and patch safety
 
@@ -76,6 +128,27 @@ author=DingYiXing
 - [扩展][必须] 若 manifest 的 `schema_version` 高于当前 skill 支持的版本，应提示版本不兼容并降级为 patch 模式、仅补缺失文件，不自动迁移 schema。
 - [扩展][必须] 若 manifest 同时缺少 `responsibility_lookup` 和 `roles`，应回退到询问用户当前责任范围，而不是自行分配。
 
+## Resume work protocol
+
+当用户说“继续”“接着上次”“按计划推进”“继续当前任务”或恢复中断工作时：
+
+1. 先读根 `CLAUDE.md`。
+2. 读 `docs/.project-docs-manifest.yaml`。
+3. 定位当前工作单元或 pm / cross-area 角色。
+4. 读该单元 `manifest.md`、`status.md`、`requirements/index.md`、`issues/index.md`、`blockers/index.md`、`sync/outward-needs.md`。
+5. 若存在相关 active exec plan，优先读 `docs/shared/exec-plans/active/*.md` 中当前计划。
+6. 只在 status、active plan 或条目文件明确引用时读取 process note。
+7. archive 默认不读；只有重新激活历史事项或 active 明确引用时才精确读取。
+8. 开工前输出当前目标、当前阻塞、下一步动作、不会读取哪些历史材料及原因。
+
+## Plan advancement protocol
+
+- [核心][必须] 当任务是“按计划推进”或存在 active exec plan 时，先找到第一个未完成且未阻塞的步骤，再执行。
+- [核心][必须] 执行前检查该步骤是否在当前范围内，是否触发锁定范围、阻塞、验收或跨单元依赖。
+- [核心][必须] 完成步骤后更新 active plan checklist、进度日志、相关 requirements/issues/blockers/sync、以及 `status.md` dashboard 链接。
+- [核心][必须] 若发现新阻塞，更新 `blockers/` 或 shared blocker list 后停止推进后续步骤，等待解除或用户确认。
+- [核心][必须] 若计划全部完成，将 active plan 标记为 completed，记录 completed_at，并移动/归入 `docs/shared/exec-plans/completed/`；相关完成项按 Archive trigger rules 归档。
+
 ## Minimal reading protocol
 
 - [核心][必须] 默认只加载当前责任范围的最小活跃集，控制上下文体积并降低脏读概率。
@@ -92,6 +165,35 @@ author=DingYiXing
 - [核心][必须] 当前任务若是再次改造、迁移、回溯已完成事项，可读取对应归档，但不得默认扩大到整个归档目录。
 - [扩展][必须] 当 active 层引用了历史设计或旧需求结论时，仅按引用提取对应归档。
 - [扩展][禁止] 不要默认扫描整个 archive 目录寻找"可能相关"的历史材料。
+
+## Work item lifecycle
+
+| Type | Active states | Terminal state | Archive rule |
+|---|---|---|---|
+| Requirement | pending → in-progress → accepted | cancelled | accepted/cancelled 后归档 |
+| Issue | open → in-progress → resolved | wontfix | resolved/wontfix 且验证后归档 |
+| Blocker | active → waiting-external → resolved | dropped | resolved/dropped 后归档 |
+| Sync need | open → waiting-response → answered | obsolete | answered/obsolete 后保留短结论 |
+| Plan | active → completed | cancelled | completed/cancelled 后移到 completed/ |
+
+- [核心][必须] 每个 REQ / ISS / BLK / SYNC / PLAN 条目应有 id、status、owner、created_at、updated_at。
+- [核心][必须] 状态变化必须更新对应 index 和 `status.md` 链接；不要只改其中一个。
+- [核心][禁止] 归档条目默认不可直接编辑；重新处理历史事项必须新建 active 条目并引用原归档。
+
+## Archive trigger rules
+
+必须归档：已验收需求、已验证修复的问题、已解除阻塞、被取消/否决/替代的事项、已完成或取消的 active exec plan。
+不得归档：未验收完成项、仍待确认责任归属的问题、仍被其他工作单元引用为当前阻塞的事项、未写清结论的排查过程。
+归档后 active 层只保留短结论和 ARC 链接。
+
+## Archive reactivation protocol
+
+1. 先读 archive index。
+2. 精确读取相关 1 个归档项；不要扫整个 archive。
+3. 创建新的 active item（例如 `REQ-012-R1` 或 `ISS-008-R1`）。
+4. 在新 active item 中引用原 archive 路径和重新激活原因。
+5. 不修改原 archive。
+6. `status.md` 只引用新的 active item。
 
 ## Conflict handling examples
 
@@ -116,6 +218,31 @@ author=DingYiXing
 - [核心][必须] 跨单元协作时，优先写入当前单元的 `sync/outward-needs.md` 或共享层的跨单元阻塞 / 协同信息；不直接改对方单元的内部状态、需求、阻塞、问题文档。
 - [核心][必须] 在已有文件里优先做区块级、字段级、追加式更新；避免全文改写、全文重排、顺手统一格式造成大 diff、把多个事项揉成一次大更新。
 - [扩展][禁止] 不要为了"整洁"重写已有非空文档。
+
+## Code-to-doc sync triggers
+
+代码或配置发生以下变化时必须执行 docs 写回检查：
+
+- Public API、参数、响应、数据模型变化 → 更新 contracts / requirements / acceptance。
+- 用户可见行为、UI 流程、权限、错误提示变化 → 更新 requirements / acceptance。
+- 修复 bug、绕过缺陷、发现实现不一致 → 更新 issues，并在验证后归档。
+- 发现新阻塞、外部依赖、联调失败 → 更新 blockers 或 shared blocker list。
+- 跨单元契约、接口或依赖变化 → 更新 sync/outward-needs.md 和 shared contracts。
+- 架构边界、依赖方向、长期原则变化 → 更新 ARCHITECTURE / GOLDEN_RULES。
+- 功能删除、取消或被替代 → 更新 scope / requirements，并归档旧事项。
+
+## Session task vs repo docs
+
+- [核心][必须] Claude Code task/todo 只用于当前会话执行管理；repo docs 才是项目持久事实源。
+- [核心][必须] 会话 task 完成不等于项目文档完成；结束前仍要执行 Completion docs sync checklist。
+- [核心][必须] 任何对未来协作有价值的事实，必须写入 repo docs，而不是只留在 task/todo、聊天记录或 hook state。
+
+## Subagent handoff
+
+- [核心][必须] 委派给 ECC agents 或其他 subagents 时，主会话必须传入当前工作单元范围、已读取的 active 事实源、禁止默认读取 archive 的约束，以及本文件的 write-back routing 要求。
+- [核心][必须] subagent 返回时，主会话必须要求其列出：changed facts、new requirements、new issues、new blockers、cross-unit needs、completion/archive candidates、可能需要更新的 docs 路径。
+- [核心][必须] subagent 不直接承担最终文档写回责任；主会话收到结果后，仍必须按 Documentation write-back matrix 判断并更新权威文档。
+- [扩展][禁止] 不要因为 ECC agent 已完成代码审查、修复或测试，就跳过 `requirements/`、`issues/`、`blockers/`、`sync/`、`archive/`、`process/` 的写回检查。
 
 ## Veto-first decision principle
 

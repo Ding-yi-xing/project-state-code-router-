@@ -1,23 +1,23 @@
 ---
 name: project-state-code-router
 description: >
-  This skill should be used when the user asks to write, modify, refactor, review,
-  debug, or continue code and project work. It fuses two layers: a project-state /
-  collaboration router plus actionable coding constraints distilled from Code
-  Complete 2 and OpenAI's harness-engineering practices. Trigger on: initializing
-  or patching project collaboration docs, routing work through project-defined
-  units, avoiding dirty reads in multi-person documentation workflows, writing
-  functions, designing classes, naming variables, handling errors, writing
-  comments/documentation, testing, debugging, refactoring, optimizing performance,
-  setting up projects, code review, establishing architecture layers or boundary
-  enforcement, installing doc-gardening or code garbage collection on a project,
-  defining project-level golden rules, and preventing documentation or code rot.
-  Use when the user mentions docs setup, project collaboration, current status,
-  requirements, blockers, archive, implementation, refactor, fix bug, add function,
-  create class, write test, add comment, review code, architecture boundaries,
-  layer rules, doc-gardening, garbage collection, code rot, golden rules, lint
-  drift, or any code-related request that benefits from minimal current context
-  plus coding-governance guidance.
+  Use this skill when project work needs repo-as-system-of-record discipline:
+  routing through project-defined work units, finding the current active truth,
+  avoiding dirty reads from archive/process logs/completed work, planning before
+  non-trivial coding or architecture, resuming interrupted work from active docs,
+  advancing active execution plans, and writing project facts back to the right
+  docs locations. Trigger on: project collaboration docs, multi-person or
+  multi-agent handoff, current status, continue previous work, resume interrupted
+  work, active exec plans, project plan advancement, requirements, blockers,
+  issues, archive, process notes, shared scope, acceptance criteria, cross-unit
+  coordination, implementation work that changes project facts, code review that
+  discovers doc-relevant issues, doc-gardening, code garbage collection, golden
+  rules, architecture boundaries, documentation-first planning, plan-before-coding,
+  plan-before-architecture, and preventing documentation or code rot. Do not use
+  this skill as the primary language/framework coding standard when project rules,
+  ECC rules, or language-specific rules already exist; use it to decide
+  project-state scope, plan persistence, dirty-read prevention, and documentation
+  write-back.
 compatibility:
   tools:
     - Read
@@ -37,10 +37,18 @@ Skill 入口（地图层）。详细规则全部下沉到 `references/`，按需
 
 | 层 | 解决什么 | 主入口 |
 |---|---|---|
-| 项目状态层 | 当前任务属于哪个工作单元、可信事实集是什么、是否需要补结构、跨单元如何避免脏读 | `references/project-state.md` |
-| 代码约束层 | 命名、设计、防御、调试、布局、性能等具体编码规范 | `references/overrides.md` 先加载，再按路由表 |
+| 项目状态层 | 当前任务属于哪个工作单元、可信事实集是什么、事实变更应写回哪里、跨单元如何避免脏读 | `references/project-state.md` |
+| 代码约束层 | 无项目 / ECC / 语言规则时的兜底编码约束；若存在项目规则或 ECC rules，以它们为主 | `references/overrides.md` 先加载，再按路由表 |
 
-使用顺序：先项目状态层缩小可信上下文，再代码约束层执行规范。如果是纯代码任务且不涉及协作文档，直接进代码约束层。
+使用顺序：先项目状态层缩小可信上下文，再代码约束层执行规范。如果项目已经有 ECC / language / framework 规则，代码约束层只补项目状态和文档写回缺口，不覆盖这些规则。
+
+## ECC / project-rules compatibility
+
+本 skill 不替代项目 `CLAUDE.md`、ECC rules、语言/框架规则、安全规则、测试规则或 hooks。存在这些规则时：本 skill 负责项目状态路由、工作单元范围、active/reference/archive 分层和 docs 写回决策；具体实现质量、测试、安全、性能、前端设计遵循项目规则和 ECC。
+
+## 文档现行原则
+
+非平凡编码、架构、跨文件修改或计划推进前，先在对应权威文档落下轻量计划或 active exec plan，再动代码。计划至少写明目标、范围、步骤、验证方式、docs 写回目标和中断恢复点，确保会话中断后后续 AI 能只靠 repo docs 接上。
 
 ## 模式判定（项目状态层）
 
@@ -75,11 +83,17 @@ Skill 入口（地图层）。详细规则全部下沉到 `references/`，按需
 - PM / 范围决策 / 是否纳入新需求
 - 跨单元写入或评估
 - 任何"是否批准"的判断（必须输出读了哪些否决条件、哪条规则被触发）
+- 继续上次任务 / 按计划推进 / 恢复中断工作
+- 非平凡编码或架构前需要落 active plan
 - 重新激活归档事项
 
 ## 轻量任务快速通道
 
 任务同时满足：单文件、非结构性、非首次、非安全关键 → 跳过项目状态层和完整路由，只加载 `references/warning-signs.md` 的 `[核心]` 部分。典型场景：代码 typo 修复、变量重命名、单行 bug 修复、注释修正、文档 typo 修正、单段措辞调整。如果执行中范围超出（如发现牵连其他文件、动到接口签名、发现要新建测试），回退完整流程。
+
+## 完成前写回检查
+
+每次项目工作结束前，必须检查本次是否改变了需求、问题、阻塞、跨单元协同、共享范围、验收标准、过程记录、活动计划或归档状态。`status.md` 只是 dashboard / index，不得作为需求、问题、阻塞、协同、过程或完成项的唯一事实源。按 `references/project-state.md` 的 write-back routing 更新权威文档；若无需同步，说明为什么除了 `status.md` 不需要更新其他 docs。
 
 ## 代码约束层加载协议
 
@@ -114,6 +128,9 @@ Skill 入口（地图层）。详细规则全部下沉到 `references/`，按需
 | When you are | Load |
 |---|---|
 | planning project collaboration / project state / current truth / archive policy | references/project-state.md |
+| continuing previous work / resuming interrupted work | references/project-state.md |
+| advancing active exec plans / project plan progress | references/project-state.md, references/bootstrap-templates.md |
+| planning before non-trivial coding or architecture | references/project-state.md, references/bootstrap-templates.md |
 | bootstrapping or patching collaboration docs | references/project-state.md, references/bootstrap-templates.md |
 | handling task boards / blocker lists / handoff status | references/project-state.md, references/bootstrap-templates.md |
 | preparing commits / branches / merges / rebases / PR workflow | references/git-workflow.md |
@@ -142,4 +159,4 @@ PR review 还要按变更内容继续路由：改了 API 加 design.md / defense
 
 ## Usage
 
-写代码前先判断是否需要项目状态路由以收敛事实集，再在路由表里找当前任务，加载列出的 reference，应用 `[必须]` 规则、避免 `[禁止]` 规则。规则归属不清时，默认正确性和可读性。
+写代码前先判断是否需要项目状态路由以收敛事实集；继续任务时从 active docs / active exec plans 恢复，不只依赖 chat history；非平凡编码或架构前先落持久计划；完成前按 write-back checklist 同步 repo docs。规则归属不清时，默认正确性、当前 active 事实和可恢复协作。

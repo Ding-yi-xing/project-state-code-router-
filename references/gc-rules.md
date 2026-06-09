@@ -34,6 +34,9 @@ skill 仓库本身不装：维护方一人、改动稀少、不满足 GC 性价�
 - **DOC.M.05** `shared/current/` 下文件不超过约定行数（如 `当前任务优先级清单.md` ≤ 200 行 — 长了说明该归档）
 - **DOC.M.06** 引用归档文件的链接必须真实存在，归档目录只增不删
 - **DOC.M.07** 每个 `archive/` 下条目必须有归档原因和归档时间字段
+- **DOC.M.08** `status.md` 中的需求/问题/阻塞/协同/计划/归档事项必须有 REQ/ISS/BLK/SYNC/PLAN/ARC 编号或路径
+- **DOC.M.09** active exec plan 必须包含目标、范围、拆解、验证方式、Docs 写回目标和中断恢复点
+- **DOC.M.10** 每个 active item 必须有 id、status、owner、created_at、updated_at
 
 ### 语义检查（智能体周期跑）
 
@@ -43,6 +46,12 @@ skill 仓库本身不装：维护方一人、改动稀少、不满足 GC 性价�
 - **DOC.S.04** 多个 status.md 都引用同一个归档项当作"当前依据" → 这是脏读复发的信号
 - **DOC.S.05** 某个工作单元 status.md 长期不动（≥ 30 天）→ 是已完成？是僵尸？提示 PM 判断
 - **DOC.S.06** `sync/outward-needs.md` 写入但其他单元从未读取或回应 → 提示协同断裂
+- **DOC.S.07** `status.md` 中存在超过 5 行的单个事项且没有独立条目链接 → 应拆到 requirements/issues/blockers/sync/archive
+- **DOC.S.08** `status.md` 行数超过 150 → 应清理为 dashboard/index
+- **DOC.S.09** `status.md` 中出现“复现步骤 / 根因 / 修复方案 / 验收标准 / 详细需求”标题 → 很可能应迁移到 issues/requirements/process
+- **DOC.S.10** active exec plan 缺少“中断恢复点”或“Docs 写回目标” → 后续 AI 难以接手
+- **DOC.S.11** 已完成计划仍留在 active/，或 completed/ 中计划未标 completed_at → 提示整理
+- **DOC.S.12** 代码变更了公开 API / 用户可见行为，但没有相应 requirements / acceptance / contracts 更新 → 提示文档过期
 
 ### 修复 PR 形态
 

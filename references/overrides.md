@@ -7,9 +7,13 @@
 
 ## Override precedence
 
+Within this skill's Code Complete 2-derived references only:
+
 ```
-modern_override > active_layer > user_config > reference_defaults > legacy_archive
+modern_override > active_layer > reference_defaults > legacy_archive
 ```
+
+This precedence does **not** override Claude Code system/developer instructions, user instructions, project `CLAUDE.md`, ECC rules, installed project rules, hooks, or language/framework-specific rules. When project or ECC rules define implementation quality, testing, security, performance, or framework practice, treat this file as a compatibility layer for this skill's fallback references only.
 
 When a rule is listed here with `action: downgrade` or `action: replace`, the referenced file's original rule is superseded. Do not apply both.
 

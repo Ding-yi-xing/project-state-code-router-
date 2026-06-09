@@ -86,6 +86,15 @@ Before doing implementation work in this project:
 2. Then read `docs/.project-docs-manifest.yaml`.
 3. Then read only the entry files and active docs for the relevant work unit.
 4. Read reference or archive docs only when the current task truly needs them.
+5. For non-trivial coding, architecture, cross-file, or cross-unit work, create or update a lightweight plan / active exec plan before editing code.
+6. Before finishing, run the docs write-back checklist and update the authoritative docs locations.
+
+## Project-state workflow
+
+- Treat `docs/shared/current/` and `docs/units/<unit>/` as the repo system of record.
+- `status.md` is only a dashboard/index; requirements, issues, blockers, sync needs, process notes, and archive items live in their own files.
+- Do not use archive/process as current truth unless explicitly reactivated.
+- If continuing work, resume from active docs and active exec plans, not from chat history alone.
 
 ## Responsibility lookup
 - Source of truth: `docs/.project-docs-manifest.yaml`
@@ -127,10 +136,29 @@ related_units: [<unit-key>, ...]
 ## 目标
 <这个计划要达成什么>
 
+## 范围
+- 本计划包含: <范围>
+- 本计划不包含: <明确不做什么>
+
 ## 拆解
 - [ ] 步骤 1：...
 - [ ] 步骤 2：...
 - [x] 步骤 3：（已完成）
+
+## 验证方式
+- [ ] <测试 / 构建 / 手工验收 / 评审方式>
+
+## Docs 写回目标
+- requirements: <REQ id/path 或 none>
+- issues: <ISS id/path 或 none>
+- blockers: <BLK id/path 或 none>
+- sync: <SYNC id/path 或 none>
+- archive: <ARC id/path 或 none>
+
+## 中断恢复点
+- 当前下一步: <如果会话中断，下一位 AI 从这里继续>
+- 已知阻塞: <如无写 none>
+- 不要读取: <本计划明确不需要的 archive/process/reference>
 
 ## 进度日志
 - 2026-05-26: 启动
@@ -410,7 +438,12 @@ owner: <owner>
 ```
 
 ### docs/units/<unit>/status.md
-当前状态总览。
+当前状态 dashboard / index。它用于快速看到本单元当前执行面，但不是需求、问题、阻塞、协同、过程记录或归档的唯一事实源。
+
+Rules:
+- `status.md` 中的需求、问题、阻塞、协同、计划、归档事项必须引用对应 REQ / ISS / BLK / SYNC / PLAN / ARC 编号或文件路径。
+- 不在 `status.md` 粘贴完整需求正文、完整复现步骤、长排查过程、跨单元协商记录或归档快照。
+- 单个事项超过 5 行，或需要独立 owner/status/acceptance/history 时，必须拆到对应目录的独立条目文件。
 
 Suggested minimal shape:
 ```md
@@ -424,27 +457,32 @@ last_verified: <date>
 # <unit-label> — 当前状态
 
 ## 当前目标
-- <当前阶段目标>
+- <当前阶段目标，项目级范围详见 docs/shared/current/当前阶段目标与范围.md>
 
 ## 当前待完成
-- [ ] <待完成项 1>
-- [ ] <待完成项 2>
+- [ ] REQ-001: <需求摘要>（详见 requirements/REQ-001.md）
 
 ## 当前阻塞
-- <阻塞项>（详见 blockers/index.md）
+- BLK-001: <阻塞摘要>（详见 blockers/BLK-001.md；若为项目级阻塞，同步到 docs/shared/current/当前阻塞与待修复问题清单.md）
 
 ## 当前待修复/待处理问题
-- <问题>（详见 issues/index.md）
+- ISS-001: <问题摘要>（详见 issues/ISS-001.md）
+
+## 对外协同
+- SYNC-001: <协同摘要>（详见 sync/outward-needs.md）
+
+## 活跃计划
+- PLAN-001: <计划摘要>（详见 docs/shared/exec-plans/active/<plan>.md）
 
 ## 最近完成
-- [x] <已完成项>
+- ARC-001: <完成摘要>（详见 archive/ARC-001.md）
 
 ## 下一步
-- <下一步动作>
+- <下一步动作；如来自需求/问题/阻塞，请引用对应编号>
 ```
 
 ### docs/units/<unit>/requirements/index.md
-当前需求摘要清单。
+当前需求摘要清单，是本工作单元需求事实的权威索引。新增或变更需求时必须更新这里；复杂需求还应创建独立 `REQ-<nnn>.md`。
 
 Suggested minimal shape:
 ```md
@@ -461,7 +499,7 @@ Suggested minimal shape:
 ```
 
 ### docs/units/<unit>/blockers/index.md
-当前阻塞摘要清单。
+当前阻塞摘要清单，是本工作单元阻塞、外部依赖、联调失败和环境问题的权威索引。新增或解除阻塞时必须更新这里；项目级阻塞还要同步到 shared/current 阻塞清单。
 
 Suggested minimal shape:
 ```md
@@ -475,7 +513,7 @@ Suggested minimal shape:
 ```
 
 ### docs/units/<unit>/issues/index.md
-当前问题摘要清单。
+当前问题摘要清单，是 bug、缺陷、验收失败和实现不一致的权威索引。发现、修复或重新打开问题时必须更新这里；复杂问题应创建独立 `ISS-<nnn>.md`。
 
 Suggested minimal shape:
 ```md
@@ -489,7 +527,7 @@ Suggested minimal shape:
 ```
 
 ### docs/units/<unit>/sync/outward-needs.md
-当前单元对外提出的协同请求、依赖或同步事项。
+当前单元对外提出的协同请求、依赖或同步事项，是跨单元请求和对外通知的权威出口。需要其他单元行动、确认或知悉时必须更新这里，不要只写在 `status.md`。
 
 Suggested minimal shape:
 ```md
@@ -503,7 +541,7 @@ Suggested minimal shape:
 ```
 
 ### docs/units/<unit>/archive/index.md
-当前单元归档索引。
+当前单元归档索引，是已完成、已取消、已修复或不再复现事项的权威历史入口。完成项不应长期堆在 `status.md`；应归档为 ARC 条目，并在 `status.md` 只保留短链接。
 
 Suggested minimal shape:
 ```md
@@ -662,7 +700,22 @@ archived_reason: <已完成 | 已取消 | 不再复现 | 已修复>
 The `.template/` directory holds the canonical copies of the item templates above.
 When creating a new work unit, copy from `.template/` into the new unit's directories.
 
-## docs/process/000-项目初始化.md
+## docs/process/
+
+`docs/process/` 保存有复用价值的推进过程、排查经过、失败尝试、交接说明和初始化记录。它不是当前待办或当前问题的默认事实源；当前事实仍应落到 `shared/current/`、工作单元 `requirements/`、`issues/`、`blockers/`、`sync/`、`archive/`。
+
+Create a process note when:
+- 排查过程包含后续可能复用的根因、实验、日志摘要或失败路径
+- 任务需要 handoff 给另一个人或 agent
+- 某个决策的理由不适合放进 status.md，但未来需要追溯
+- bootstrap / patch 改变了协作文档结构
+
+Naming examples:
+- `docs/process/000-项目初始化.md`
+- `docs/process/2026-05-26-auth-bug-investigation.md`
+- `docs/process/2026-05-26-frontend-handoff.md`
+
+### docs/process/000-项目初始化.md
 Must include:
 - 初始化时间
 - 初始化原因
