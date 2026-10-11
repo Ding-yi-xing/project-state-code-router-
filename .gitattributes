@@ -1,0 +1,4 @@
+# Normalize all text files to LF in the repository and in the working tree.
+# Prevents CRLF churn on Windows and keeps the skill portable across platforms
+# (notably the shebang in scripts/audit_project_docs.py).
+* text=auto eol=lf
