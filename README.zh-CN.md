@@ -10,7 +10,7 @@
 
 被触发时，它会引导 Agent：
 
-1. 判断项目处于 `bootstrap`、`patch` 还是 `normal` 模式
+1. 判断项目处于 `bootstrap`、`patch`、`normal`、`audit` 还是 `repair` 模式
 2. 识别最窄责任范围：某个工作单元、`pm`、或 `cross-area`
 3. 只读取该范围所需的最小 active 事实集
 4. 不让归档、旧计划、过程日志或已完成事项泄漏进当前上下文
@@ -105,16 +105,17 @@
 
 ```text
 project-state-code-router/
-├── SKILL.md                          # 地图层：两层、模式、
-│                                     # 安全规则、路由表
+├── SKILL.md                          # 地图层：两层、模式、安全规则、路由表
 ├── README.md / README.zh-CN.md
 ├── LICENSE
+├── scripts/
+│   └── audit_project_docs.py         # 只读 docs 审计（需要 PyYAML）
 └── references/
+    ├── audit-protocol.md             # audit / repair 分级与流程
     ├── overrides.md                  # 现代兜底规则覆盖层；先加载
     ├── warning-signs.md              # 跨场景红旗清单
     ├── project-state.md              # 项目状态层规则
-    ├── bootstrap-templates.md        # 最小 docs 骨架、manifest schema、
-    │                                 # 工作单元、计划、原则文件、llms.txt
+    ├── bootstrap-templates.md        # 最小 docs 骨架、manifest schema、工作单元与计划
     ├── architecture-layers.md        # 分层架构 + 边界 lint
     ├── gc-rules.md                   # 文档 / 代码 GC、黄金原则
     ├── design.md                     # 类 / 模块 / 接口设计
@@ -128,8 +129,7 @@ project-state-code-router/
     ├── git-workflow.md               # 提交、分支、PR
     ├── templates.md                  # 文件 / 函数模板
     └── downstream-samples/
-        └── gc-lint.example.mjs       # 下游项目可复制的 doc-gardening
-                                      # 参考实现
+        └── gc-lint.example.mjs       # 下游项目可复制的参考实现
 ```
 
 ---
@@ -178,8 +178,10 @@ bootstrap 时建议的目录是刻意保持最小的，并且位于项目根目�
 | `bootstrap` | 无 `docs/`、无 manifest、无 active 层 | 只创建最小骨架，不捏造业务单元或事项 |
 | `patch` | 有 `docs/` 但 manifest / active 层 / 单元入口缺失 | 只补缺失项，绝不覆盖已有非空文件 |
 | `normal` | manifest、active 层、当前单元入口都存在 | 只读最小必要集，只在当前范围内编辑 |
+| `audit` | 用户要求审计 / docs 治理 | 全面只读检查，分级报告，不自动修复 |
+| `repair` | 用户明确要求整改 | 只修复确认项，再运行审计验证 |
 
-Manifest 恢复策略是保守的：解析错误、字段缺失、过期的 `active_core_files`、不完整的 `work_units` 都要明确报告，并且只用最小安全方式修复。
+Manifest 恢复策略是保守的：解析错误、字段缺失、过期的 `active_core_files`、不完整的 `work_units` 都要明确报告，并且只用最小安全方式修复。旧 manifest 先兼容映射；不得在 patch 模式直接覆盖或重写。审计默认不修改文件。详见 `references/audit-protocol.md`；可运行 `python scripts/audit_project_docs.py <project-root>`。
 
 ---
 
@@ -263,7 +265,7 @@ skill 会根据 `SKILL.md` frontmatter 里的触发词自动激活。
 1. 如果存在根目录 `CLAUDE.md`，先读它
 2. 读取 `docs/.project-docs-manifest.yaml`
 3. 判断最窄责任范围
-4. 判断项目模式（`bootstrap` / `patch` / `normal`）
+4. 判断项目模式（`bootstrap` / `patch` / `normal` / `audit` / `repair`）
 5. 只读取当前范围所需的最小 active 文档集
 6. 仅在历史追溯真的需要时读 archive
 7. 在非平凡工作前落下轻量计划 / active exec plan

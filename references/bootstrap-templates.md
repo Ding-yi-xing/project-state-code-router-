@@ -92,6 +92,7 @@ Before doing implementation work in this project:
 ## Project-state workflow
 
 - Treat `docs/shared/current/` and `docs/units/<unit>/` as the repo system of record.
+- Do not duplicate changing facts (phase, work-unit list, priorities, blockers, active-plan progress) in `CLAUDE.md`; route to manifest/current docs instead.
 - `status.md` is only a dashboard/index; requirements, issues, blockers, sync needs, process notes, and archive items live in their own files.
 - Do not use archive/process as current truth unless explicitly reactivated.
 - If continuing work, resume from active docs and active exec plans, not from chat history alone.
@@ -169,7 +170,7 @@ related_units: [<unit-key>, ...]
 - 2026-05-27: 不在本期处理 X，挪到 tech-debt-tracker.md
 ```
 
-完成后只需要把 `status` 改成 `completed`、填 `completed_at`、把文件从 `active/` 移到 `completed/`。
+完成后确认验证与 docs 写回完成，再把 `status` 改成 `completed`、填 `completed_at`、把文件从 `active/` 移到 `completed/`。取消时使用 `cancelled` 并记录原因。不要使用 `done` / `finished` 等非标准状态。
 
 **为什么提升计划为一流工件**：智能体下次接手时可以**只读这一份文件**就理解上下文、之前的尝试、为什么这么做 — 不需要去翻 chat 历史或外部系统。这正是 OpenAI 帖子里讲的"代码仓库即 system of record"。
 
@@ -216,6 +217,8 @@ OpenAI 仓库里把 `design-system-reference-llms.txt`、`nixpacks-llms.txt`、`
 ### docs/.project-docs-manifest.yaml
 
 This is the single source of truth for responsibility routing and active-layer discovery. Every field described below must be present in a valid manifest.
+
+For a legacy manifest, do not replace the file wholesale in patch mode. Preserve existing fields and user content, identify compatible mappings, report unresolved fields, and add only confirmed missing standard fields. If the format is not safely parseable, follow Manifest error recovery in `project-state.md`.
 
 #### Required fields
 
@@ -554,6 +557,10 @@ Suggested minimal shape:
 - ARC-002: <问题标题> — 归档日期: <> — 原因: <已修复/不再复现>
 ```
 
+## Item sizing
+
+不要把每个小 TODO 都升级成独立文件。1–3 步、单工作单元、低风险、无外部依赖且无需跨会话恢复的事项，可以在 index 中保留简短状态和下一步。涉及跨单元协作、生产/数据风险、外部依赖、公开契约、多步骤或需要历史追踪时，使用带元数据的独立条目。
+
 ## Item templates
 
 ### docs/units/<unit>/requirements/_item.template.md
@@ -732,5 +739,6 @@ The goal is to establish current-truth anchors, not to generate a complete handb
 
 If a project already has rich historical docs but lacks the active layer:
 - create only the missing active-layer files
+- record the patch date, reason, created files, preserved files, and unresolved user inputs in `docs/process/` (create the directory only when needed)
 - do not migrate or rewrite historical docs immediately
 - leave historical detail where it is until a dedicated cleanup task happens

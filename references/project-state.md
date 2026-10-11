@@ -8,6 +8,15 @@ author=DingYiXing
 **Often used with:** git-workflow.md, warning-signs.md.
 **Read Next If:** bootstrapping docs → bootstrap-templates.md; writing code after routing → naming.md / design.md / defense.md and other task-specific references.
 
+## Project-state modes
+
+- [核心][必须] `bootstrap`：项目没有协作 docs；仅建最小骨架，不推测业务单元或事项。
+- [核心][必须] `patch`：已有 docs 但入口/结构不完整；补缺失项，不重写已有非空内容。对历史 schema 先识别兼容映射，报告缺失，不直接替换 manifest。
+- [核心][必须] `normal`：路由入口可用；按最小活跃集执行日常任务。
+- [核心][必须] `audit`：用户要求审计/治理时使用；全面只读检查，默认不改文件，输出分级发现及证据。
+- [核心][必须] `repair`：仅在用户明确要求整改后使用；按已确认范围修复并复跑审计。
+- [核心][必须] 不得将历史结构差异自动判成当前违规；区分会影响当前路由/恢复的规则违规、可分批处理的迁移债务、纯信息项。
+
 ## Project-state governance
 
 - [核心][必须] 将项目文档分为 active、reference、archive 三层，只允许 active 层作为当前任务的默认事实源。
@@ -41,6 +50,7 @@ author=DingYiXing
 
 - [核心][必须] 每次任务先判断当前责任范围：单一工作单元、pm、cross-area，选择最窄的适用范围。
 - [核心][必须] 若项目根目录存在 `CLAUDE.md`，应先读取它，再决定读取哪类入口文档和当前责任范围。
+- [扩展][必须] `CLAUDE.md` 作为稳定路由合同，不重复维护易变的阶段、当前工作单元清单、优先级、阻塞或活动计划进度；这些事实应引用 manifest / current docs 的单一权威位置。
 - [核心][必须] 当前开发者负责范围应优先从 `docs/.project-docs-manifest.yaml` 的责任归属配置中查询；仍不明确时，先询问用户或项目经理，不要自行猜测。
 - [核心][必须] 当 manifest 中 `work_units` 为空（零个工作单元）时，不得自行创建或猜测工作单元——必须在输出中提示："当前项目未定义任何工作单元，请项目经理在 manifest 中添加 work_units，或明确告知本次任务暂不按工作单元路由"。只有在用户明确确认跳过或提供单元信息后才能继续。
 - [核心][必须] 当任务不属于任何已有工作单元且用户未声明角色时，应主动询问："本任务涉及的内容目前不属于任何已定义的工作单元，是否需要创建新工作单元？或者本次以 pm / cross-area 角色处理？"
@@ -92,7 +102,7 @@ author=DingYiXing
 
 ### Completion docs sync checklist
 
-Before finishing any project work, check:
+Before finishing any project work, check and record the result in the response or task record:
 
 1. Did scope, priority, or acceptance criteria change? If yes, update `docs/shared/current/`.
 2. Did a new requirement appear or an existing requirement change? If yes, update `requirements/`.
@@ -176,13 +186,15 @@ Before finishing any project work, check:
 | Sync need | open → waiting-response → answered | obsolete | answered/obsolete 后保留短结论 |
 | Plan | active → completed | cancelled | completed/cancelled 后移到 completed/ |
 
-- [核心][必须] 每个 REQ / ISS / BLK / SYNC / PLAN 条目应有 id、status、owner、created_at、updated_at。
+- [核心][必须] 每个正式 REQ / ISS / BLK / SYNC / PLAN 条目应有 id、status、owner、created_at、updated_at。
+- [扩展][必须] 仅当事项需要中断恢复/历史追踪，或涉及跨单元、外部依赖、生产风险、数据迁移、公开契约、多步骤时，才强制拆独立条目；1–3 步、单单元、低风险、无需追踪的事项可留在 index，但需标清状态和下一步。
 - [核心][必须] 状态变化必须更新对应 index 和 `status.md` 链接；不要只改其中一个。
+- [核心][必须] Plan 只允许 `active`、`completed`、`cancelled`；不得用 `done`、`finished`、`closed` 代替终态。完成时需验证步骤和 docs 写回、填写 `completed_at`，再移入 `completed/`。
 - [核心][禁止] 归档条目默认不可直接编辑；重新处理历史事项必须新建 active 条目并引用原归档。
 
 ## Archive trigger rules
 
-必须归档：已验收需求、已验证修复的问题、已解除阻塞、被取消/否决/替代的事项、已完成或取消的 active exec plan。
+必须归档：已验收需求、已验证修复的问题、已解除阻塞、被取消/否决/替代的事项、已完成或取消的 active exec plan。历史迁移时先核对验证证据和引用；不确定是否完成的条目保持原状并报告，不根据文件名或 checklist 单独归档。
 不得归档：未验收完成项、仍待确认责任归属的问题、仍被其他工作单元引用为当前阻塞的事项、未写清结论的排查过程。
 归档后 active 层只保留短结论和 ARC 链接。
 
@@ -203,7 +215,7 @@ Before finishing any project work, check:
 
 ## Work-unit file responsibilities
 
-每个工作单元至少应有：`README.md` `manifest.md` `status.md` `requirements/index.md` `blockers/index.md` `issues/index.md` `sync/outward-needs.md` `archive/index.md`。
+新建的工作单元至少应有：`README.md` `manifest.md` `status.md` `requirements/index.md` `blockers/index.md` `issues/index.md` `sync/outward-needs.md` `archive/index.md`。历史单元缺项属于 patch/audit 发现：仅在该单元需要路由或承载当前事项时补齐，不要求一次性迁移所有遗留单元。
 
 - [核心][必须] `manifest.md` 是 Claude 的单元路由文件，至少包含：单元名称、负责范围、不负责范围、路由线索、默认读取顺序。
 - [核心][必须] `status.md` 只保留当前最重要事实（当前目标、当前待完成、当前阻塞、待修复问题、最近完成、下一步），不堆历史。

@@ -10,7 +10,7 @@ It helps Claude (or any other coding agent) decide **what is current truth, what
 
 When invoked, it guides the agent to:
 
-1. Detect whether the project is in `bootstrap`, `patch`, or `normal` mode
+1. Detect whether the project is in `bootstrap`, `patch`, `normal`, `audit`, or `repair` mode
 2. Identify the narrowest responsibility area: a work unit, `pm`, or `cross-area`
 3. Read only the smallest active fact set required for that scope
 4. Avoid leaking archive, old plans, process logs, or completed work into current context
@@ -109,7 +109,10 @@ project-state-code-router/
 │                                     # safety rules, routing table
 ├── README.md / README.zh-CN.md
 ├── LICENSE
+├── scripts/
+│   └── audit_project_docs.py         # Read-only docs audit (requires PyYAML)
 └── references/
+    ├── audit-protocol.md             # Audit / repair workflow and severity
     ├── overrides.md                  # Modern fallback-rule overrides; load first
     ├── warning-signs.md              # Cross-cutting red flags
     ├── project-state.md              # Project-state layer rules
@@ -129,7 +132,6 @@ project-state-code-router/
     ├── templates.md                  # File / function templates
     └── downstream-samples/
         └── gc-lint.example.mjs       # Reference implementation for downstream
-                                      # doc-gardening (copy & adapt)
 ```
 
 ---
@@ -178,8 +180,10 @@ Names can be localized (Chinese names work too); structure semantics matter, not
 | `bootstrap` | No `docs/`, no manifest, no active layer | Create the minimal skeleton only; do not invent business units or items |
 | `patch` | `docs/` exists but manifest / active layer / unit entry is missing | Fill only what is missing; never overwrite non-empty files |
 | `normal` | Manifest, active layer, and current unit entry all exist | Read the smallest necessary set; edit only inside the current scope |
+| `audit` | User requests a docs / project-state audit | Read-only inspection; classify findings; do not repair |
+| `repair` | User explicitly requests fixes | Make scoped incremental fixes and rerun the audit |
 
-Manifest recovery is conservative: parsing errors, missing fields, stale `active_core_files`, or incomplete `work_units` are reported and repaired only in the smallest safe way.
+Manifest recovery is conservative: parsing errors, missing fields, stale `active_core_files`, or incomplete `work_units` are reported and repaired only in the smallest safe way. Map legacy manifests compatibly; never replace them wholesale in patch mode. Audit is read-only by default. See `references/audit-protocol.md`; run `python scripts/audit_project_docs.py <project-root>` (requires PyYAML).
 
 ---
 
